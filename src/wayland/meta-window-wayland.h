@@ -80,4 +80,8 @@ gboolean meta_window_wayland_is_resize (MetaWindowWayland *wl_window,
 META_EXPORT_TEST
 gboolean meta_window_wayland_is_acked_fullscreen (MetaWindowWayland *wl_window);
 
+void meta_window_wayland_get_pending_size (MetaWindowWayland *wl_window,
+                                           int               *width,
+                                           int               *height);
+
 #endif

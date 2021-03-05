@@ -343,6 +343,12 @@ meta_window_wayland_move_resize_internal (MetaWindow                *window,
     }
   else
     {
+      int pending_width;
+      int pending_height;
+      meta_window_wayland_get_pending_size (wl_window,
+                                            &pending_width,
+                                            &pending_height);
+
       if (window->placement.rule)
         {
           switch (window->placement.state)
@@ -357,8 +363,8 @@ meta_window_wayland_move_resize_internal (MetaWindow                *window,
                 if (flags & META_MOVE_RESIZE_PLACEMENT_CHANGED ||
                     rel_x != wl_window->last_sent_rel_x ||
                     rel_y != wl_window->last_sent_rel_y ||
-                    constrained_rect.width != window->rect.width ||
-                    constrained_rect.height != window->rect.height)
+                    constrained_rect.width != pending_width ||
+                    constrained_rect.height != pending_height)
                   {
                     MetaWaylandWindowConfiguration *configuration;
 
@@ -392,9 +398,8 @@ meta_window_wayland_move_resize_internal (MetaWindow                *window,
               break;
             }
         }
-      else if (constrained_rect.width != window->rect.width ||
-               constrained_rect.height != window->rect.height ||
-               flags & META_MOVE_RESIZE_RESIZE_ACTION ||
+      else if (constrained_rect.width != pending_width ||
+               constrained_rect.height != pending_height ||
                flags & META_MOVE_RESIZE_STATE_CHANGED)
         {
           MetaWaylandWindowConfiguration *configuration;
@@ -1419,4 +1424,28 @@ meta_window_wayland_is_acked_fullscreen (MetaWindowWayland *wl_window)
 {
   return (wl_window->last_acked_configuration &&
           wl_window->last_acked_configuration->is_fullscreen);
+}
+
+void
+meta_window_wayland_get_pending_size (MetaWindowWayland *wl_window,
+                                      int               *width,
+                                      int               *height)
+{
+  MetaWindow *window = META_WINDOW (wl_window);
+  GList *l;
+
+  for (l = wl_window->pending_configurations; l; l = l->next)
+    {
+      MetaWaylandWindowConfiguration *configuration = l->data;
+
+      if (configuration->has_size)
+        {
+          *width = configuration->width;
+          *height = configuration->height;
+          return;
+        }
+    }
+
+  *width = window->rect.width;
+  *height = window->rect.height;
 }
