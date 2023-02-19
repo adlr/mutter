@@ -50,6 +50,7 @@
 
 #include "backends/meta-backend-private.h"
 
+#include <linux/input.h>
 #include <stdlib.h>
 
 #include "backends/meta-a11y-manager.h"
@@ -1128,9 +1129,6 @@ update_pointer_visibility_from_event (MetaBackend  *backend,
   g_warn_if_fail (!priv->in_init);
 
   event_type = clutter_event_type (event);
-  if (event_type == CLUTTER_KEY_PRESS ||
-      event_type == CLUTTER_KEY_RELEASE)
-    return;
 
   device = clutter_event_get_source_device (event);
   if (!device)
@@ -1147,7 +1145,9 @@ update_pointer_visibility_from_event (MetaBackend  *backend,
     case CLUTTER_POINTER_DEVICE:
     case CLUTTER_TOUCHPAD_DEVICE:
       priv->last_pointer_motion = time_ms;
-      set_cursor_visible (backend, TRUE);
+      event_type = clutter_event_type (event);
+      if (event_type != CLUTTER_KEY_PRESS && event_type != CLUTTER_KEY_RELEASE)
+        set_cursor_visible (backend, TRUE);
       break;
     case CLUTTER_TABLET_DEVICE:
     case CLUTTER_PEN_DEVICE:
@@ -1164,6 +1164,17 @@ update_pointer_visibility_from_event (MetaBackend  *backend,
     default:
       break;
     }
+
+  /* meta_topic (META_DEBUG_BACKEND, "keyboard evt 0x%x 0x%02x %d", */
+  /*             clutter_event_get_state(event), */
+  /*             clutter_event_get_key_unicode(event), */
+  /*             clutter_event_get_event_code(event)); */
+  if (clutter_event_type(event) == CLUTTER_KEY_PRESS &&
+      clutter_event_get_state(event) <= 1 &&  // Modifiers: none or just shift
+      (clutter_event_get_key_unicode(event) > 0 ||  // Key: has some text or is escape OR
+       (clutter_event_get_event_code(event) >= KEY_LINEFEED &&  // key is a nav key
+        clutter_event_get_event_code(event) <= KEY_DELETE)))
+    set_cursor_visible (backend, FALSE);
 }
 
 static gboolean
