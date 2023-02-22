@@ -1062,8 +1062,10 @@ update_pointer_visibility_from_event (MetaBackend  *backend,
       break;
     case CLUTTER_POINTER_DEVICE:
     case CLUTTER_TOUCHPAD_DEVICE:
-      priv->last_pointer_motion = time_ms;
-      meta_cursor_tracker_set_pointer_visible (cursor_tracker, TRUE);
+      if (clutter_event_type(event) == CLUTTER_MOTION) {
+        priv->last_pointer_motion = time_ms;
+        meta_cursor_tracker_set_pointer_visible (cursor_tracker, TRUE);
+      }
       break;
     case CLUTTER_TABLET_DEVICE:
     case CLUTTER_PEN_DEVICE:
