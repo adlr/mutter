@@ -481,30 +481,35 @@ meta_workspace_queue_calc_showing  (MetaWorkspace *workspace)
 }
 
 static void
-workspace_switch_sound(MetaWorkspace *from,
-                       MetaWorkspace *to)
+workspace_switch_sound (MetaWorkspace *from,
+                        MetaWorkspace *to)
 {
   MetaSoundPlayer *player;
   MetaWorkspaceLayout layout;
-  int i, nw, x, y, fi, ti;
-  const char *e;
+  int n_workspaces;
+  int from_idx, to_idx;
+  int i;
+  int x, y;
+  const char *sound_name;
 
-  nw = meta_workspace_manager_get_n_workspaces (from->manager);
-  fi = meta_workspace_index(from);
-  ti = meta_workspace_index(to);
+  n_workspaces = meta_workspace_manager_get_n_workspaces (from->manager);
+  from_idx = meta_workspace_index(from);
+  to_idx = meta_workspace_index(to);
 
   meta_workspace_manager_calc_workspace_layout (from->manager,
-                                                nw,
-                                                fi,
+                                                n_workspaces,
+                                                from_idx,
                                                 &layout);
 
-  for (i = 0; i < nw; i++)
-    if (layout.grid[i] == ti)
-      break;
-
-  if (i >= nw)
+  for (i = 0; i < n_workspaces; i++)
     {
-      meta_bug("Failed to find destination workspace in layout");
+      if (layout.grid[i] == to_idx)
+        break;
+    }
+
+  if (i >= n_workspaces)
+    {
+      g_warning ("Failed to find destination workspace in layout");
       goto finish;
     }
 
@@ -519,21 +524,23 @@ workspace_switch_sound(MetaWorkspace *from,
      movement but not such much vertical movement. */
 
   if (x < layout.current_col)
-    e = "desktop-switch-left";
+    sound_name = "desktop-switch-left";
   else if (x > layout.current_col)
-    e = "desktop-switch-right";
+    sound_name = "desktop-switch-right";
   else if (y < layout.current_row)
-    e = "desktop-switch-up";
+    sound_name = "desktop-switch-up";
   else if (y > layout.current_row)
-    e = "desktop-switch-down";
+    sound_name = "desktop-switch-down";
   else
     {
-      meta_bug("Uh, origin and destination workspace at same logic position!");
+      g_warn_if_reached ();
       goto finish;
     }
 
   player = meta_display_get_sound_player (from->display);
-  meta_sound_player_play_from_theme (player, e, _("Workspace switched"), NULL);
+  meta_sound_player_play_from_theme (player,
+                                     sound_name, _("Workspace switched"),
+                                     NULL);
 
  finish:
   meta_workspace_manager_free_workspace_layout (&layout);
@@ -569,6 +576,9 @@ meta_workspace_activate_with_focus (MetaWorkspace *workspace,
   MetaWorkspaceLayout layout1, layout2;
   gint num_workspaces, current_space, new_space;
   MetaMotionDirection direction;
+
+  g_return_if_fail (META_IS_WORKSPACE (workspace));
+  g_return_if_fail (meta_workspace_index (workspace) != -1);
 
   meta_verbose ("Activating workspace %d",
                 meta_workspace_index (workspace));
@@ -1316,14 +1326,39 @@ meta_workspace_get_name (MetaWorkspace *workspace)
   return meta_prefs_get_workspace_name (meta_workspace_index (workspace));
 }
 
+static MetaWindow *
+get_focused_workspace_window (MetaWorkspace *workspace)
+{
+  g_autoptr (GList) windows = NULL;
+  GList *l;
+
+  windows = meta_workspace_list_windows (workspace);
+
+  for (l = windows; l != NULL; l = l->next)
+    {
+      MetaWindow *window = l->data;
+
+      if (meta_window_has_focus (window))
+        return window;
+    }
+
+  return NULL;
+}
+
 void
 meta_workspace_focus_default_window (MetaWorkspace *workspace,
                                      MetaWindow    *not_this_one,
                                      guint32        timestamp)
 {
+  MetaWindow *focus;
+
   if (timestamp == META_CURRENT_TIME)
     meta_warning ("META_CURRENT_TIME used to choose focus window; "
                   "focus window may not be correct.");
+
+  focus = get_focused_workspace_window (workspace);
+  if (focus != NULL && focus != not_this_one)
+    return;
 
   if (meta_prefs_get_focus_mode () == G_DESKTOP_FOCUS_MODE_CLICK ||
       !workspace->display->mouse_mode)

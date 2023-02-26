@@ -2910,7 +2910,6 @@ meta_window_tile (MetaWindow   *window,
                   MetaTileMode  tile_mode)
 {
   MetaMaximizeFlags directions;
-  MetaRectangle old_frame_rect, old_buffer_rect;
 
   g_return_if_fail (META_IS_WINDOW (window));
 
@@ -2936,15 +2935,17 @@ meta_window_tile (MetaWindow   *window,
   meta_window_maximize_internal (window, directions, NULL);
   meta_display_update_tile_preview (window->display, FALSE);
 
-  /* Setup the edge constraints */
-  update_edge_constraints (window);
+  if (!window->tile_match || window->tile_match != window->display->grab_window)
+    {
+      MetaRectangle old_frame_rect, old_buffer_rect;
 
-  meta_window_get_frame_rect (window, &old_frame_rect);
-  meta_window_get_buffer_rect (window, &old_buffer_rect);
+      meta_window_get_frame_rect (window, &old_frame_rect);
+      meta_window_get_buffer_rect (window, &old_buffer_rect);
 
-  meta_compositor_size_change_window (window->display->compositor, window,
-                                      META_SIZE_CHANGE_MAXIMIZE,
-                                      &old_frame_rect, &old_buffer_rect);
+      meta_compositor_size_change_window (window->display->compositor, window,
+                                          META_SIZE_CHANGE_MAXIMIZE,
+                                          &old_frame_rect, &old_buffer_rect);
+    }
 
   meta_window_move_resize_internal (window,
                                     (META_MOVE_RESIZE_MOVE_ACTION |
@@ -4595,9 +4596,9 @@ meta_window_focus (MetaWindow  *window,
 
   META_WINDOW_GET_CLASS (window)->focus (window, timestamp);
 
-  /* Move to the front of the focusing workspace's MRU list.
-   * We should only be "removing" it from the MRU list if it's
-   * not already there.  Note that it's possible that we might
+  /* Move to the front of all workspaces' MRU lists the window
+   * is on. We should only be "removing" it from the MRU list if
+   * it's already there.  Note that it's possible that we might
    * be processing this FocusIn after we've changed to a
    * different workspace; we should therefore update the MRU
    * list only if the window is actually on the active
@@ -4607,20 +4608,20 @@ meta_window_focus (MetaWindow  *window,
       meta_window_located_on_workspace (window,
                                         workspace_manager->active_workspace))
     {
-      GList *link;
+      GList *l;
 
-      link = g_list_find (workspace_manager->active_workspace->mru_list,
-                          window);
-      g_assert (link);
+      for (l = workspace_manager->workspaces; l != NULL; l = l->next)
+        {
+          MetaWorkspace *workspace = l->data;
+          GList *link;
 
-      workspace_manager->active_workspace->mru_list =
-        g_list_remove_link (workspace_manager->active_workspace->mru_list,
-                            link);
-      g_list_free (link);
+          link = g_list_find (workspace->mru_list, window);
+          if (!link)
+            continue;
 
-      workspace_manager->active_workspace->mru_list =
-        g_list_prepend (workspace_manager->active_workspace->mru_list,
-                        window);
+          workspace->mru_list = g_list_delete_link (workspace->mru_list, link);
+          workspace->mru_list = g_list_prepend (workspace->mru_list, window);
+        }
     }
 
   backend = meta_get_backend ();

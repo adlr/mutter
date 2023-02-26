@@ -1158,20 +1158,33 @@ relative_motion_across_outputs (MetaViewportInfo   *viewports,
   float x = cur_x, y = cur_y;
   float target_x = cur_x, target_y = cur_y;
   float dx = *dx_inout, dy = *dy_inout;
-  MetaDisplayDirection direction = -1;
+  MetaDisplayDirection direction_h, direction_v;
+
+#define META_DISPLAY_NONE -1
+  direction_h = dx > 0.0 ? META_DISPLAY_RIGHT :
+    dx < 0.0 ? META_DISPLAY_LEFT :
+    META_DISPLAY_NONE;
+  direction_v = dy > 0.0 ? META_DISPLAY_DOWN :
+    dy < 0.0 ? META_DISPLAY_UP :
+    META_DISPLAY_NONE;
+#undef META_DISPLAY_NONE
 
   while (cur_view >= 0)
     {
       MetaLine2 left, right, top, bottom, motion;
       MetaVector2 intersection;
+      MetaDisplayDirection direction;
       cairo_rectangle_int_t rect;
       float scale;
 
       meta_viewport_info_get_view_info (viewports, cur_view, &rect, &scale);
 
+      target_x = x + (dx * scale);
+      target_y = y + (dy * scale);
+
       motion = (MetaLine2) {
         .a = { x, y },
-        .b = { x + (dx * scale), y + (dy * scale) }
+        .b = { target_x, target_y }
       };
       left = (MetaLine2) {
         { rect.x, rect.y },
@@ -1190,29 +1203,26 @@ relative_motion_across_outputs (MetaViewportInfo   *viewports,
         { rect.x + rect.width, rect.y + rect.height }
       };
 
-      target_x = motion.b.x;
-      target_y = motion.b.y;
-
-      if (direction != META_DISPLAY_RIGHT &&
+      if (direction_h == META_DISPLAY_LEFT &&
           meta_line2_intersects_with (&motion, &left, &intersection))
         direction = META_DISPLAY_LEFT;
-      else if (direction != META_DISPLAY_LEFT &&
+      else if (direction_h == META_DISPLAY_RIGHT &&
                meta_line2_intersects_with (&motion, &right, &intersection))
         direction = META_DISPLAY_RIGHT;
-      else if (direction != META_DISPLAY_DOWN &&
+      else if (direction_v == META_DISPLAY_UP &&
                meta_line2_intersects_with (&motion, &top, &intersection))
         direction = META_DISPLAY_UP;
-      else if (direction != META_DISPLAY_UP &&
+      else if (direction_v == META_DISPLAY_DOWN &&
                meta_line2_intersects_with (&motion, &bottom, &intersection))
         direction = META_DISPLAY_DOWN;
       else
         /* We reached the dest logical monitor */
         break;
 
+      dx -= intersection.x - x;
+      dy -= intersection.y - y;
       x = intersection.x;
       y = intersection.y;
-      dx -= intersection.x - motion.a.x;
-      dy -= intersection.y - motion.a.y;
 
       cur_view = meta_viewport_info_get_neighbor (viewports, cur_view,
                                                   direction);
@@ -1732,6 +1742,18 @@ evdev_add_device (MetaSeatImpl           *seat_impl,
 
   if (is_touchscreen || is_tablet_switch || is_pointer)
     update_touch_mode (seat_impl);
+
+  if (type == CLUTTER_KEYBOARD_DEVICE)
+    {
+      MetaKbdA11ySettings kbd_a11y_settings;
+      MetaInputDeviceNative *keyboard_native;
+
+      keyboard_native = META_INPUT_DEVICE_NATIVE (seat_impl->core_keyboard);
+      meta_input_settings_get_kbd_a11y_settings (seat_impl->input_settings,
+                                                 &kbd_a11y_settings);
+      meta_input_device_native_apply_kbd_a11y_settings_in_impl (keyboard_native,
+                                                                &kbd_a11y_settings);
+    }
 
   return device;
 }
