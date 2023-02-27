@@ -359,6 +359,32 @@ meta_display_handle_event (MetaDisplay        *display,
     }
 
   window = get_window_for_event (display, event, event_actor);
+  if (window && event->type == CLUTTER_SCROLL &&
+      clutter_event_get_scroll_direction(event) == CLUTTER_SCROLL_SMOOTH) {
+    const char* text = meta_window_get_wm_class(window);
+    gdouble dx, dy;
+    clutter_event_get_scroll_delta(event, &dx, &dy);
+    if (!strcmp(text, "google-chrome")) {
+      dy *= (0.5 * 53.0/120.0);
+
+      // Hack to transform finished flags to 0-len scrolls
+      // Since Chrome 109 is ignoring finished flags
+      ClutterScrollFinishFlags finish_flags =
+        clutter_event_get_scroll_finish_flags(event);
+      if (finish_flags & CLUTTER_SCROLL_FINISHED_VERTICAL) {
+        dy = 0;
+      }
+      if (finish_flags & CLUTTER_SCROLL_FINISHED_HORIZONTAL) {
+        dx = 0;
+      }
+      // Const cast -- yucky
+      ((ClutterEvent*)event)->scroll.finish_flags =
+        CLUTTER_SCROLL_FINISHED_NONE;
+    }
+
+    // Const cast -- yucky
+    clutter_event_set_scroll_delta((ClutterEvent*)event, dx, dy);
+  }
 
   display->current_time = event->any.time;
 
