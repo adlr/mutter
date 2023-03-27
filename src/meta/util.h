@@ -47,6 +47,9 @@ META_EXPORT
 void meta_fatal      (const char *format,
                       ...) G_GNUC_PRINTF (1, 2) G_GNUC_NORETURN G_ANALYZER_NORETURN;
 
+META_EXPORT
+void meta_backtrace(const char* format, ...) G_GNUC_PRINTF (1, 2);
+
 /**
  * MetaDebugTopic:
  * @META_DEBUG_VERBOSE: verbose logging

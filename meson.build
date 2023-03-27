@@ -18,6 +18,7 @@ colord_req = '>= 1.4.5'
 fribidi_req = '>= 1.0.0'
 glib_req = '>= 2.69.0'
 gi_req = '>= 0.9.5'
+gjs_req = '>= 1.73.1'
 graphene_req = '>= 1.10.2'
 gtk3_req = '>= 3.19.8'
 gdk_pixbuf_req = '>= 2.0'
@@ -59,6 +60,8 @@ gnome = import('gnome')
 pkg = import('pkgconfig')
 i18n  = import('i18n')
 fs = import('fs')
+gjs = find_program('gjs')
+
 cc = meson.get_compiler('c')
 
 add_project_link_arguments(
@@ -116,6 +119,7 @@ gsettings_desktop_schemas_dep = dependency('gsettings-desktop-schemas',
 glib_dep = dependency('glib-2.0', version: glib_req)
 gio_dep = dependency('gio-unix-2.0', version: glib_req)
 gio_unix_dep = dependency('gio-unix-2.0', version: glib_req)
+gjs_dep = dependency('gjs-1.0', version: gjs_req)
 gobject_dep = dependency('gobject-2.0', version: glib_req)
 gthread_dep = dependency('gobject-2.0', version: glib_req)
 gmodule_no_export_dep = dependency('gmodule-no-export-2.0', version: glib_req)

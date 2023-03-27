@@ -33,6 +33,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
+#include <execinfo.h>
 #include <string.h>
 #include <X11/Xlib.h>   /* must explicitly be included for Solaris; #326746 */
 #include <X11/Xutil.h>  /* Just for the definition of the various gravities */
@@ -40,6 +41,8 @@
 #ifdef HAVE_SYS_PRCTL
 #include <sys/prctl.h>
 #endif
+
+#include <gjs/gjs.h>
 
 #include "clutter/clutter-mutter.h"
 #include "cogl/cogl.h"
@@ -436,6 +439,56 @@ meta_exit (MetaExitCode code)
 {
 
   exit (code);
+}
+
+void
+meta_backtrace (const char *format, ...)
+{
+  va_list args;
+  gchar *str;
+  FILE *out;
+
+  g_return_if_fail (format != NULL);
+
+  va_start (args, format);
+  str = g_strdup_vprintf (format, args);
+  va_end (args);
+
+#ifdef WITH_VERBOSE_MODE
+  out = logfile ? logfile : stderr;
+#else
+  out = stderr;
+#endif
+
+  utf8_fputs ("Window manager backtrace msg: ", out);
+  utf8_fputs (str, out);
+  utf8_fputs ("\n", out);
+
+  fflush (out);
+
+  {
+    void *array[30];
+    char **strings;
+    int size, i;
+
+    size = backtrace (array, 30);
+    strings = backtrace_symbols (array, size);
+    if (strings != NULL) {
+      utf8_fputs("Obtained stack frames.\n", out);
+      for (i = 0; i < size; i++) {
+        utf8_fputs(strings[i], out);
+        utf8_fputs("\n", out);
+      }
+    } else {
+      utf8_fputs("Failed to get stack frames.\n", out);
+    }
+    fflush(out);
+    gjs_dumpstack();
+
+    free (strings);
+  }
+
+  g_free (str);
 }
 
 gint

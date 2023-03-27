@@ -35,7 +35,7 @@ FCFLAGS="${FCFLAGS:--O2 -flto=auto -ffat-lto-objects -fexceptions -g -grecord-gc
   CC="${CC:-gcc}" ; export CC ; 
   CXX="${CXX:-g++}" ; export CXX ;
 
-    #/usr/bin/meson --buildtype=plain --prefix=/usr --libdir=/usr/lib64 --libexecdir=/usr/libexec --bindir=/usr/bin --sbindir=/usr/sbin --includedir=/usr/include --datadir=/usr/share --mandir=/usr/share/man --infodir=/usr/share/info --localedir=/usr/share/locale --sysconfdir=/etc --localstatedir=/var --sharedstatedir=/var/lib --wrap-mode=nodownload --auto-features=enabled . redhat-linux-build -Degl_device=true -Dwayland_eglstream=true
+    /usr/bin/meson --buildtype=plain --prefix=/usr --libdir=/usr/lib64 --libexecdir=/usr/libexec --bindir=/usr/bin --sbindir=/usr/sbin --includedir=/usr/include --datadir=/usr/share --mandir=/usr/share/man --infodir=/usr/share/info --localedir=/usr/share/locale --sysconfdir=/etc --localstatedir=/var --sharedstatedir=/var/lib --wrap-mode=nodownload --auto-features=enabled . redhat-linux-build -Degl_device=true -Dwayland_eglstream=true
 
     /usr/bin/meson compile -C redhat-linux-build -j 8 --verbose
     sudo /usr/bin/meson install -C redhat-linux-build

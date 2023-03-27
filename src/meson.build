@@ -15,6 +15,7 @@ mutter_lib_deps = [
 mutter_pkg_deps = [
   cairo_dep,
   gio_unix_dep,
+  gjs_dep,
   glib_dep,
   gsettings_desktop_schemas_dep,
   gtk3_dep,
