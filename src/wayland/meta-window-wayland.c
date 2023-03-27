@@ -396,7 +396,8 @@ meta_window_wayland_move_resize_internal (MetaWindow                *window,
         }
       else if (constrained_rect.width != window->rect.width ||
                constrained_rect.height != window->rect.height ||
-               flags & META_MOVE_RESIZE_STATE_CHANGED)
+               flags & META_MOVE_RESIZE_STATE_CHANGED ||
+               wl_window->pending_configurations != NULL)
         {
           MetaWaylandWindowConfiguration *configuration;
           int bounds_width;
