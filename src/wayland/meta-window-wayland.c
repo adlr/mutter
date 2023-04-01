@@ -172,7 +172,7 @@ meta_window_wayland_configure (MetaWindowWayland              *wl_window,
 {
   MetaWindow *window = META_WINDOW (wl_window);
 
-  g_message("meta_window_wayland_configure called\n");
+  meta_warning("meta_window_wayland_configure called\n");
   meta_backtrace("meta_window_wayland_configure");
   meta_wayland_surface_configure_notify (window->surface, configuration);
 
@@ -194,7 +194,7 @@ surface_state_changed (MetaWindow *window)
 
   g_return_if_fail (wl_window->has_last_sent_configuration);
 
-  g_message("surface_state_changed called\n");
+  meta_warning("surface_state_changed called\n");
   if (!meta_window_calculate_bounds (window, &bounds_width, &bounds_height))
     {
       bounds_width = 0;
@@ -274,7 +274,7 @@ meta_window_wayland_move_resize_internal (MetaWindow                *window,
                  window->rect.height);
   /* don't do anything if we're dropping the window, see #751847 */
   if (window->unmanaging) {
-    g_message("mri done\n");
+    meta_warning("mri done\n");
     return;
   }
 
@@ -370,7 +370,7 @@ meta_window_wayland_move_resize_internal (MetaWindow                *window,
                                                                       configured_rect.width,
                                                                       configured_rect.height,
                                                                       geometry_scale);
-                    g_message("mri sending configure top\n");
+                    meta_warning("mri sending configure top\n");
                     meta_window_wayland_configure (wl_window, configuration);
 
                     wl_window->last_sent_rel_x = rel_x;
@@ -407,7 +407,7 @@ meta_window_wayland_move_resize_internal (MetaWindow                *window,
               !META_WINDOW_MAXIMIZED (window) &&
               window->tile_mode == META_TILE_NONE &&
               !meta_window_is_fullscreen (window)) {
-            g_message("mri done\n");
+            meta_warning("mri done\n");
             return;
           }
 
@@ -426,7 +426,7 @@ meta_window_wayland_move_resize_internal (MetaWindow                *window,
                                                    geometry_scale,
                                                    flags,
                                                    gravity);
-          g_message("mri sending configure bot\n");
+          meta_warning("mri sending configure bot\n");
           meta_window_wayland_configure (wl_window, configuration);
           can_move_now = FALSE;
         }
@@ -483,7 +483,7 @@ meta_window_wayland_move_resize_internal (MetaWindow                *window,
   if (can_move_now &&
       flags & META_MOVE_RESIZE_WAYLAND_STATE_CHANGED)
     *result |= META_MOVE_RESIZE_RESULT_STATE_CHANGED;
-  g_message("mri done bot\n");
+  meta_warning("mri done bot\n");
 }
 
 static void
@@ -1052,7 +1052,7 @@ meta_window_wayland_finish_move_resize (MetaWindow              *window,
    * scale new_geom to physical pixels given what buffer scale and texture scale
    * is in use. */
 
-  g_message("meta_window_wayland_finish_move_resize new_geom: {x=%d, y=%d, w=%d, h=%d}\n",
+  meta_warning("meta_window_wayland_finish_move_resize new_geom: {x=%d, y=%d, w=%d, h=%d}\n",
             new_geom.x, new_geom.y, new_geom.width, new_geom.height);
   acked_configuration = acquire_acked_configuration (wl_window, pending,
                                                      &is_client_resize);

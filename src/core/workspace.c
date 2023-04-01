@@ -823,7 +823,7 @@ meta_workspace_invalidate_work_area (MetaWorkspace *workspace)
     {
       MetaWindow *w = l->data;
       meta_window_queue (w, META_QUEUE_MOVE_RESIZE);
-      g_message("QUEUE window %s\n", meta_window_get_wm_class(w));
+      meta_warning("QUEUE window %s\n", meta_window_get_wm_class(w));
     }
 
   g_list_free (windows);
@@ -1086,7 +1086,7 @@ meta_workspace_set_builtin_struts (MetaWorkspace *workspace,
       MetaStrut *strut = l->data;
       MetaLogicalMonitor *logical_monitor;
 
-      g_message("  {x=%d, y=%d, w=%d, h=%d}\n", strut->rect.x,
+      meta_warning("  {x=%d, y=%d, w=%d, h=%d}\n", strut->rect.x,
                 strut->rect.y, strut->rect.width, strut->rect.height);
       logical_monitor =
         meta_monitor_manager_get_logical_monitor_from_rect (monitor_manager,

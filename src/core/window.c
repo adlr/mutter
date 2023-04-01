@@ -3820,17 +3820,17 @@ meta_window_move_resize_internal (MetaWindow          *window,
                      META_MOVE_RESIZE_RESIZE_ACTION |
                      META_MOVE_RESIZE_WAYLAND_FINISH_MOVE_RESIZE));
 
-  g_message("meta_window_move_resize_internal (%s|%s|%s) fr: {x=%d, y=%d, w=%d, h=%d}\n",
+  meta_warning("meta_window_move_resize_internal (%s|%s|%s) fr: {x=%d, y=%d, w=%d, h=%d}\n",
             flags & META_MOVE_RESIZE_MOVE_ACTION ? "META_MOVE_RESIZE_MOVE_ACTION" : "0",
             flags & META_MOVE_RESIZE_RESIZE_ACTION ? "META_MOVE_RESIZE_RESIZE_ACTION" : "0",
             flags & META_MOVE_RESIZE_WAYLAND_FINISH_MOVE_RESIZE ? "META_MOVE_RESIZE_WAYLAND_FINISH_MOVE_RESIZE" : "0",
             frame_rect.x, frame_rect.y, frame_rect.width, frame_rect.height);
-  g_message("Initial widow size: {x=%d, y=%d, w=%d, h=%d}\n",
+  meta_warning("Initial widow size: {x=%d, y=%d, w=%d, h=%d}\n",
             window->rect.x, window->rect.y, window->rect.width, window->rect.height);
   did_placement = !window->placed && window->calc_placement;
 
   /* We don't need it in the idle queue anymore. */
-  g_message("UNQUEUE window %s\n", meta_window_get_wm_class(window));
+  meta_warning("UNQUEUE window %s\n", meta_window_get_wm_class(window));
   meta_window_unqueue (window, META_QUEUE_MOVE_RESIZE);
 
   if ((flags & META_MOVE_RESIZE_RESIZE_ACTION) && (flags & META_MOVE_RESIZE_MOVE_ACTION))
@@ -3910,7 +3910,7 @@ meta_window_move_resize_internal (MetaWindow          *window,
                                                         rel_y,
                                                         flags, &result);
 
-  g_message("Resultant size: {x=%d, y=%d, w=%d, h=%d}\n",
+  meta_warning("Resultant size: {x=%d, y=%d, w=%d, h=%d}\n",
             window->rect.x, window->rect.y, window->rect.width, window->rect.height);
 
   if (result & META_MOVE_RESIZE_RESULT_MOVED)
@@ -3978,10 +3978,10 @@ meta_window_move_resize_internal (MetaWindow          *window,
                                          workspace_manager->active_workspace);
 
   if (flags & META_MOVE_RESIZE_WAYLAND_CLIENT_RESIZE) {
-    g_message("queue window client resize\n");
+    meta_warning("queue window client resize\n");
     meta_window_queue (window, META_QUEUE_MOVE_RESIZE);
   }
-  g_message("Final Resultant size: {x=%d, y=%d, w=%d, h=%d}\n",
+  meta_warning("Final Resultant size: {x=%d, y=%d, w=%d, h=%d}\n",
             window->rect.x, window->rect.y, window->rect.width, window->rect.height);
 }
 

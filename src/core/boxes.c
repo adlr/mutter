@@ -802,7 +802,7 @@ meta_rectangle_expand_to_avoiding_struts (MetaRectangle       *rect,
     {
       MetaStrut *strut = (MetaStrut*) strut_iter->data;
 
-      g_message("avoiding strut: {x=%d, y=%d, w=%d, h=%d}\n",
+      meta_warning("avoiding strut: {x=%d, y=%d, w=%d, h=%d}\n",
                 strut->rect.x, strut->rect.y, strut->rect.width, strut->rect.height);
       /* Skip struts that don't overlap */
       if (!meta_rectangle_overlap (&strut->rect, rect))
@@ -839,7 +839,7 @@ meta_rectangle_expand_to_avoiding_struts (MetaRectangle       *rect,
           /* else ignore the strut */
         }
     } /* end loop over struts */
-  g_message("Done avoiding struts\n");
+  meta_warning("Done avoiding struts\n");
 } /* end meta_rectangle_expand_to_avoiding_struts */
 
 void
