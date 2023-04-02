@@ -778,13 +778,10 @@ meta_wayland_xdg_toplevel_apply_state (MetaWaylandSurfaceRole  *surface_role,
   window = meta_wayland_surface_get_window (surface);
   if (!window)
     {
-      meta_warning("meta_wayland_xdg_toplevel_apply_state called (no window)\n");
       meta_wayland_actor_surface_queue_frame_callbacks (actor_surface, pending);
       return;
     }
 
-  meta_warning("meta_wayland_xdg_toplevel_apply_state called (%s)\n",
-               meta_window_get_wm_class(window));
   if (!surface->buffer_ref->buffer && xdg_surface_priv->first_buffer_attached)
     {
       meta_wayland_xdg_surface_reset (xdg_surface);
@@ -834,7 +831,6 @@ meta_wayland_xdg_toplevel_post_apply_state (MetaWaylandSurfaceRole  *surface_rol
 
   gboolean geometry_changed;
 
-  meta_warning("meta_wayland_xdg_toplevel_post_apply_state called\n");
   window = meta_wayland_surface_get_window (surface);
   if (!window)
     return;
@@ -846,9 +842,6 @@ meta_wayland_xdg_toplevel_post_apply_state (MetaWaylandSurfaceRole  *surface_rol
   surface_role_class->post_apply_state (surface_role, pending);
 
   window_geometry = meta_wayland_xdg_surface_get_window_geometry (xdg_surface);
-  meta_warning("meta_wayland_xdg_surface_get_window_geometry window: {x=%d, y=%d, w=%d, h=%d}, old: {x=%d, y=%d, w=%d, h=%d}\n",
-            window_geometry.x, window_geometry.y, window_geometry.width, window_geometry.height,
-            old_geometry.x, old_geometry.y, old_geometry.width, old_geometry.height);
   geometry_changed = !meta_rectangle_equal (&old_geometry, &window_geometry);
 
   if (geometry_changed ||
@@ -1632,7 +1625,6 @@ meta_wayland_xdg_surface_apply_state (MetaWaylandSurfaceRole  *surface_role,
   MetaWindow *window = meta_wayland_surface_get_window (surface);
   MetaWaylandSurfaceRoleClass *surface_role_class;
 
-  meta_warning("meta_wayland_xdg_surface_apply_state called\n");
   surface_role_class =
     META_WAYLAND_SURFACE_ROLE_CLASS (meta_wayland_xdg_surface_parent_class);
   surface_role_class->apply_state (surface_role, pending);
@@ -1658,7 +1650,6 @@ meta_wayland_xdg_surface_post_apply_state (MetaWaylandSurfaceRole  *surface_role
   MetaWaylandShellSurface *shell_surface =
     META_WAYLAND_SHELL_SURFACE (surface_role);
 
-  meta_warning("meta_wayland_xdg_surface_post_apply_state called\n");
   if (pending->has_new_geometry)
     {
       meta_wayland_shell_surface_determine_geometry (shell_surface,
