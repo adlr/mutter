@@ -1558,11 +1558,6 @@ xdg_surface_set_window_geometry (struct wl_client   *client,
   MetaWaylandSurface *surface = surface_from_xdg_surface_resource (resource);
   MetaWaylandSurfaceState *pending;
 
-  meta_backtrace("xdg_surface_set_window_geometry: x=%d, y=%d, w=%d, h=%d\n",
-                 x, y, width, height);
-  if (width == 1920 && height == 1048) {
-    meta_warning("break here\n");
-  }
   if (width == 0 || height == 0)
     {
       g_warning ("Invalid geometry %dx%d+%d+%d set on xdg_surface@%d. Ignoring for "
