@@ -775,14 +775,16 @@ meta_wayland_xdg_toplevel_apply_state (MetaWaylandSurfaceRole  *surface_role,
     meta_wayland_surface_role_get_surface (surface_role);
   MetaWindow *window;
 
-  meta_warning("meta_wayland_xdg_toplevel_apply_state called\n");
   window = meta_wayland_surface_get_window (surface);
   if (!window)
     {
+      meta_warning("meta_wayland_xdg_toplevel_apply_state called (no window)\n");
       meta_wayland_actor_surface_queue_frame_callbacks (actor_surface, pending);
       return;
     }
 
+  meta_warning("meta_wayland_xdg_toplevel_apply_state called (%s)\n",
+               meta_window_get_wm_class(window));
   if (!surface->buffer_ref->buffer && xdg_surface_priv->first_buffer_attached)
     {
       meta_wayland_xdg_surface_reset (xdg_surface);

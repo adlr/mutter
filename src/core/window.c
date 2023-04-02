@@ -3820,11 +3820,12 @@ meta_window_move_resize_internal (MetaWindow          *window,
                      META_MOVE_RESIZE_RESIZE_ACTION |
                      META_MOVE_RESIZE_WAYLAND_FINISH_MOVE_RESIZE));
 
-  meta_warning("meta_window_move_resize_internal (%s|%s|%s) fr: {x=%d, y=%d, w=%d, h=%d}\n",
-            flags & META_MOVE_RESIZE_MOVE_ACTION ? "META_MOVE_RESIZE_MOVE_ACTION" : "0",
-            flags & META_MOVE_RESIZE_RESIZE_ACTION ? "META_MOVE_RESIZE_RESIZE_ACTION" : "0",
-            flags & META_MOVE_RESIZE_WAYLAND_FINISH_MOVE_RESIZE ? "META_MOVE_RESIZE_WAYLAND_FINISH_MOVE_RESIZE" : "0",
-            frame_rect.x, frame_rect.y, frame_rect.width, frame_rect.height);
+  meta_warning("meta_window_move_resize_internal (%s|%s|%s) w: %s fr: {x=%d, y=%d, w=%d, h=%d}\n",
+               flags & META_MOVE_RESIZE_MOVE_ACTION ? "META_MOVE_RESIZE_MOVE_ACTION" : "0",
+               flags & META_MOVE_RESIZE_RESIZE_ACTION ? "META_MOVE_RESIZE_RESIZE_ACTION" : "0",
+               flags & META_MOVE_RESIZE_WAYLAND_FINISH_MOVE_RESIZE ? "META_MOVE_RESIZE_WAYLAND_FINISH_MOVE_RESIZE" : "0",
+               meta_window_get_wm_class(window),
+               frame_rect.x, frame_rect.y, frame_rect.width, frame_rect.height);
   meta_warning("Initial widow size: {x=%d, y=%d, w=%d, h=%d}\n",
             window->rect.x, window->rect.y, window->rect.width, window->rect.height);
   did_placement = !window->placed && window->calc_placement;
