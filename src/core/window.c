@@ -3820,11 +3820,22 @@ meta_window_move_resize_internal (MetaWindow          *window,
                      META_MOVE_RESIZE_RESIZE_ACTION |
                      META_MOVE_RESIZE_WAYLAND_FINISH_MOVE_RESIZE));
 
-  meta_warning("meta_window_move_resize_internal (%s|%s|%s) w: %s fr: {x=%d, y=%d, w=%d, h=%d}\n",
-               flags & META_MOVE_RESIZE_MOVE_ACTION ? "META_MOVE_RESIZE_MOVE_ACTION" : "0",
-               flags & META_MOVE_RESIZE_RESIZE_ACTION ? "META_MOVE_RESIZE_RESIZE_ACTION" : "0",
-               flags & META_MOVE_RESIZE_WAYLAND_FINISH_MOVE_RESIZE ? "META_MOVE_RESIZE_WAYLAND_FINISH_MOVE_RESIZE" : "0",
+  meta_warning("meta_window_move_resize_internal w: %s (%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s) fr: {x=%d, y=%d, w=%d, h=%d}\n",
                meta_window_get_wm_class(window),
+               flags & META_MOVE_RESIZE_CONFIGURE_REQUEST ? "CONFIGURE_REQUEST" : "",
+               flags & META_MOVE_RESIZE_USER_ACTION ? "USER_ACTION" : "",
+               flags & META_MOVE_RESIZE_MOVE_ACTION ? "MOVE_ACTION" : "",
+               flags & META_MOVE_RESIZE_RESIZE_ACTION ? "RESIZE_ACTION" : "",
+               flags & META_MOVE_RESIZE_WAYLAND_FINISH_MOVE_RESIZE ? "WAYLAND_FINISH_MOVE_RESIZE" : "",
+               flags & META_MOVE_RESIZE_STATE_CHANGED ? "STATE_CHANGED" : "",
+               flags & META_MOVE_RESIZE_UNMAXIMIZE ? "UNMAXIMIZE" : "",
+               flags & META_MOVE_RESIZE_UNFULLSCREEN ? "UNFULLSCREEN" : "",
+               flags & META_MOVE_RESIZE_FORCE_MOVE ? "FORCE_MOVE" : "",
+               flags & META_MOVE_RESIZE_WAYLAND_STATE_CHANGED ? "WAYLAND_STATE_CHANGED" : "",
+               flags & META_MOVE_RESIZE_FORCE_UPDATE_MONITOR ? "FORCE_UPDATE_MONITOR" : "",
+               flags & META_MOVE_RESIZE_PLACEMENT_CHANGED ? "PLACEMENT_CHANGED" : "",
+               flags & META_MOVE_RESIZE_WAYLAND_CLIENT_RESIZE ? "WAYLAND_CLIENT_RESIZE" : "",
+               flags & META_MOVE_RESIZE_CONSTRAIN ? "CONSTRAIN" : "",
                frame_rect.x, frame_rect.y, frame_rect.width, frame_rect.height);
   meta_warning("Initial widow size: {x=%d, y=%d, w=%d, h=%d}\n",
             window->rect.x, window->rect.y, window->rect.width, window->rect.height);

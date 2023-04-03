@@ -4035,8 +4035,7 @@ meta_display_queue_window (MetaDisplay   *display,
       if (!(queue_types & 1 << queue_idx))
         continue;
 
-      meta_topic (META_DEBUG_WINDOW_STATE,
-                  "Queueing %s for window '%s'",
+      meta_warning("Queueing %s for window '%s'\n",
                   meta_window_queue_names[queue_idx],
                   meta_window_get_description (window));
 
@@ -4079,6 +4078,10 @@ meta_display_unqueue_window (MetaDisplay   *display,
                   meta_window_queue_names[queue_idx],
                   window->desc);
 
+      if (((1 << queue_idx) & META_QUEUE_MOVE_RESIZE) &&
+          g_list_find (priv->queue_windows[queue_idx], window)) {
+        meta_warning("Did unqueue a request\n");
+      }
       priv->queue_windows[queue_idx] =
         g_list_remove (priv->queue_windows[queue_idx], window);
 
