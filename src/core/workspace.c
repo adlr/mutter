@@ -1078,7 +1078,7 @@ meta_workspace_set_builtin_struts (MetaWorkspace *workspace,
   MetaRectangle display_rect = { 0 };
   GSList *l;
 
-  meta_backtrace("set builtin struts");
+  meta_warning("set builtin struts");
   meta_display_get_size (display, &display_rect.width, &display_rect.height);
 
   for (l = struts; l; l = l->next)

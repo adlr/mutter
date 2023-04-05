@@ -848,6 +848,21 @@ meta_wayland_xdg_toplevel_post_apply_state (MetaWaylandSurfaceRole  *surface_rol
       pending->derived.surface_size_changed ||
       pending->has_acked_configure_serial)
     {
+      meta_warning("about to call meta_window_wayland_finish_move_resize (%d,%d,%d)\n",
+                   geometry_changed,
+                   pending->derived.surface_size_changed,
+                   pending->has_acked_configure_serial);
+      if (geometry_changed) {
+        meta_warning("old geom: {x: %d y: %d w: %d h: %d} new geom: {x: %d y: %d w: %d h: %d}\n",
+                     old_geometry.x,
+                     old_geometry.y,
+                     old_geometry.width,
+                     old_geometry.height,
+                     window_geometry.x,
+                     window_geometry.y,
+                     window_geometry.width,
+                     window_geometry.height);
+      }
       meta_window_wayland_finish_move_resize (window, window_geometry, pending);
     }
   else if (pending->dx != 0 || pending->dy != 0)
