@@ -1667,6 +1667,8 @@ meta_wayland_xdg_surface_post_apply_state (MetaWaylandSurfaceRole  *surface_role
 
   if (pending->has_new_geometry)
     {
+      MetaRectangle curr = priv->geometry;
+
       meta_wayland_shell_surface_determine_geometry (shell_surface,
                                                      &pending->new_geometry,
                                                      &priv->geometry);
@@ -1678,6 +1680,19 @@ meta_wayland_xdg_surface_post_apply_state (MetaWaylandSurfaceRole  *surface_role
                      wl_resource_get_id (priv->resource));
           return;
         }
+      if (!meta_rectangle_equal(&curr, &priv->geometry)) {
+        MetaWindow *window = meta_wayland_shell_surface_get_window(surface_role);
+        meta_warning("Window Surface (%s) changes from {x: %d, y: %d, w: %d, h: %d} to {x: %d, y: %d, w: %d, h: %d}\n",
+                     window ? meta_window_get_wm_class(window) : "(no-win)",
+                     curr.x,
+                     curr.y,
+                     curr.width,
+                     curr.height,
+                     priv->geometry.x,
+                     priv->geometry.y,
+                     priv->geometry.width,
+                     priv->geometry.height);
+      }
 
       priv->has_set_geometry = TRUE;
     }
