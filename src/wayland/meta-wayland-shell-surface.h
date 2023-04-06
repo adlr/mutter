@@ -65,4 +65,6 @@ void meta_wayland_shell_surface_set_window (MetaWaylandShellSurface *shell_surfa
 
 void meta_wayland_shell_surface_destroy_window (MetaWaylandShellSurface *shell_surface);
 
+MetaWindow *meta_wayland_shell_surface_get_window (MetaWaylandSurfaceRole *surface_role);
+
 #endif /* META_WAYLAND_SHELL_SURFACE_H */

@@ -219,7 +219,7 @@ meta_wayland_shell_surface_surface_pre_apply_state (MetaWaylandSurfaceRole  *sur
     meta_window_queue (priv->window, META_QUEUE_CALC_SHOWING);
 }
 
-static MetaWindow *
+MetaWindow *
 meta_wayland_shell_surface_get_window (MetaWaylandSurfaceRole *surface_role)
 {
   MetaWaylandShellSurface *shell_surface =
