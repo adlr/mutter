@@ -295,8 +295,7 @@ meta_window_constrain (MetaWindow          *window,
   ConstraintPriority priority = PRIORITY_MINIMUM;
   gboolean satisfied = FALSE;
 
-  meta_topic (META_DEBUG_GEOMETRY,
-              "Constraining %s in move from %d,%d %dx%d to %d,%d %dx%d",
+  meta_warning ("Constraining %s in move from %d,%d %dx%d to %d,%d %dx%d",
               window->desc,
               orig->x, orig->y, orig->width, orig->height,
               new->x,  new->y,  new->width,  new->height);

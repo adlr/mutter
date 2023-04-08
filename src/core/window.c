@@ -6412,8 +6412,7 @@ meta_window_get_work_area_for_logical_monitor (MetaWindow         *window,
       tmp = tmp->next;
     }
 
-  meta_topic (META_DEBUG_WORKAREA,
-              "Window %s monitor %d has work area %d,%d %d x %d",
+  meta_warning ("Window %s monitor %d has work area %d,%d %d x %d",
               window->desc, logical_monitor->number,
               area->x, area->y, area->width, area->height);
 }

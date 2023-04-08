@@ -173,6 +173,7 @@ meta_window_wayland_configure (MetaWindowWayland              *wl_window,
   MetaWindow *window = META_WINDOW (wl_window);
 
   meta_warning("meta_window_wayland_configure called\n");
+  meta_wayland_window_configuration_log(configuration);
   meta_backtrace("meta_window_wayland_configure");
   meta_wayland_surface_configure_notify (window->surface, configuration);
 
@@ -441,6 +442,7 @@ meta_window_wayland_move_resize_internal (MetaWindow                *window,
   wl_window->last_sent_geometry_scale = geometry_scale;
   wl_window->last_sent_gravity = gravity;
 
+  meta_warning("can_move_now: %d\n", can_move_now);
   if (can_move_now)
     {
       new_x = constrained_rect.x;
@@ -874,8 +876,11 @@ meta_window_wayland_peek_configuration (MetaWindowWayland *wl_window,
     {
       MetaWaylandWindowConfiguration *configuration = l->data;
 
-      if (configuration->serial == serial)
+      if (configuration->serial == serial) {
+        meta_backtrace("peeked at a configuration\n");
+        meta_wayland_window_configuration_log(configuration);
         return configuration;
+      }
     }
 
   return NULL;
@@ -1056,10 +1061,12 @@ meta_window_wayland_finish_move_resize (MetaWindow              *window,
             new_geom.x, new_geom.y, new_geom.width, new_geom.height);
   acked_configuration = acquire_acked_configuration (wl_window, pending,
                                                      &is_client_resize);
-
-  if (acked_configuration)
+  if (acked_configuration) {
+    meta_warning("got an acked configuration for window: %s\n",
+                 meta_window_get_wm_class(window));
+    meta_wayland_window_configuration_log(acked_configuration);
     geometry_scale = acked_configuration->scale;
-  else
+  } else
     geometry_scale = meta_window_wayland_get_geometry_scale (window);
 
   new_geom.x *= geometry_scale;

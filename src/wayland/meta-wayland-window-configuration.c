@@ -121,3 +121,21 @@ meta_wayland_window_configuration_free (MetaWaylandWindowConfiguration *configur
 {
   g_free (configuration);
 }
+
+void
+meta_wayland_window_configuration_log (MetaWaylandWindowConfiguration *configuration)
+{
+  meta_warning("MWWConfig: %s(%d, %d) %s(%d, %d), %s size, %s resiz, (%d, %d), sc: %d, grav: %d, fl: 0x%x, bounds(%d x %d), %s fs\n",
+	       configuration->has_position ? "pos" : "nopos",
+	       configuration->x, configuration->y,
+	       configuration->has_relative_position ? "relpos" : "norpos",
+	       configuration->rel_x, configuration->rel_y,
+	       configuration->has_size ? "has" : "no",
+	       configuration->is_resizing ? "is" : "not",
+	       configuration->width, configuration->height,
+	       configuration->scale, configuration->gravity,
+	       configuration->flags,
+	       configuration->width, configuration->height,
+	       configuration->is_fullscreen ? "is" : "not");
+}
+

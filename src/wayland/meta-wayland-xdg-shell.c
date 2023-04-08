@@ -1707,8 +1707,22 @@ meta_wayland_xdg_surface_post_apply_state (MetaWaylandSurfaceRole  *surface_role
                                                      &new_geometry);
       if (!meta_rectangle_equal (&new_geometry, &priv->geometry))
         {
+          MetaWindow *window = meta_wayland_shell_surface_get_window(surface_role);
+          MetaRectangle curr = priv->geometry;
+
           pending->has_new_geometry = TRUE;
           priv->geometry = new_geometry;
+          meta_warning("Window Surface bot(%s) changes from {x: %d, y: %d, w: %d, h: %d} to {x: %d, y: %d, w: %d, h: %d}\n",
+                       window ? meta_window_get_wm_class(window) : "(no-win)",
+                       curr.x,
+                       curr.y,
+                       curr.width,
+                       curr.height,
+                       priv->geometry.x,
+                       priv->geometry.y,
+                       priv->geometry.width,
+                       priv->geometry.height);
+
         }
     }
 }

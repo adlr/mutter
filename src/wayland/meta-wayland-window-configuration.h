@@ -74,4 +74,6 @@ MetaWaylandWindowConfiguration * meta_wayland_window_configuration_new_empty (in
 
 void meta_wayland_window_configuration_free (MetaWaylandWindowConfiguration *configuration);
 
+void meta_wayland_window_configuration_log (MetaWaylandWindowConfiguration *configuration);
+
 #endif /* META_WAYLAND_WINDOW_CONFIGURATION_H */
