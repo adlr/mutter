@@ -6412,9 +6412,22 @@ meta_window_get_work_area_for_logical_monitor (MetaWindow         *window,
       tmp = tmp->next;
     }
 
-  meta_warning ("Window %s monitor %d has work area %d,%d %d x %d",
-              window->desc, logical_monitor->number,
-              area->x, area->y, area->width, area->height);
+  static int last_x = 0;
+  static int last_y = 0;
+  static int last_width = 0;
+  static int last_height = 0;
+  if (last_x != area->x ||
+      last_y != area->y ||
+      last_width != area->width ||
+      last_height != area->height) {
+    meta_warning ("Window %s monitor %d has work area %d,%d %d x %d",
+                  window->desc, logical_monitor->number,
+                  area->x, area->y, area->width, area->height);
+    last_x = area->x;
+    last_y = area->y;
+    last_width = area->width;
+    last_height = area->height;
+  }
 }
 
 /**
