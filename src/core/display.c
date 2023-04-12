@@ -4104,6 +4104,33 @@ meta_display_unqueue_window (MetaDisplay   *display,
     }
 }
 
+int
+meta_display_would_unqueue_window (MetaDisplay   *display,
+                                   MetaWindow    *window,
+                                   MetaQueueType  queue_types)
+{
+  MetaDisplayPrivate *priv = meta_display_get_instance_private (display);
+  MetaCompositor *compositor = display->compositor;
+  MetaLaters *laters = meta_compositor_get_laters (compositor);
+  int queue_idx;
+
+  for (queue_idx = 0; queue_idx < META_N_QUEUE_TYPES; queue_idx++)
+    {
+      if (!(queue_types & 1 << queue_idx))
+        continue;
+
+      meta_topic (META_DEBUG_WINDOW_STATE,
+                  "checking unqueue %s for window '%s'",
+                  meta_window_queue_names[queue_idx],
+                  window->desc);
+
+      if (g_list_find (priv->queue_windows[queue_idx], window)) {
+        return 1;
+      }
+    }
+  return 0;
+}
+
 void
 meta_display_flush_queued_window (MetaDisplay   *display,
                                   MetaWindow    *window,

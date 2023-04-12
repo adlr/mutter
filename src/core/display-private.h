@@ -433,6 +433,10 @@ void meta_display_unqueue_window (MetaDisplay   *display,
                                   MetaWindow    *window,
                                   MetaQueueType  queue_types);
 
+int meta_display_would_unqueue_window (MetaDisplay   *display,
+                                       MetaWindow    *window,
+                                       MetaQueueType  queue_types);
+
 void meta_display_flush_queued_window (MetaDisplay   *display,
                                        MetaWindow    *window,
                                        MetaQueueType  queue_types);

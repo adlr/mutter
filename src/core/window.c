@@ -1780,6 +1780,22 @@ meta_window_unqueue (MetaWindow    *window,
   priv->queued_types &= ~queue_types;
 }
 
+static int
+meta_window_would_unqueue (MetaWindow    *window,
+                           MetaQueueType  queue_types)
+{
+  MetaWindowPrivate *priv = meta_window_get_instance_private (window);
+
+  queue_types &= priv->queued_types;
+
+  if (!queue_types) {
+    meta_warning("no queue type to check\n");
+    return 0;
+  }
+
+  return meta_display_would_unqueue_window (window->display, window, queue_types);
+}
+
 static void
 meta_window_flush_calc_showing (MetaWindow *window)
 {
@@ -1808,10 +1824,11 @@ meta_window_queue (MetaWindow   *window,
     return;
   }
 
+  MetaQueueType orig_queue_types = queue_types;
   queue_types &= ~priv->queued_types;
   if (!queue_types) {
     meta_warning("actually not queuing b/c already queueing for this/these types: %d\n",
-                 queue_types);
+                 orig_queue_types);
     return;
   }
 
@@ -3995,11 +4012,13 @@ meta_window_move_resize_internal (MetaWindow          *window,
                                          workspace_manager->active_workspace);
 
   if (flags & META_MOVE_RESIZE_WAYLAND_CLIENT_RESIZE) {
-    meta_warning("queue window client resize\n");
+    meta_warning("QUEUE window client resize\n");
     meta_window_queue (window, META_QUEUE_MOVE_RESIZE);
   }
   meta_warning("Final Resultant size: {x=%d, y=%d, w=%d, h=%d}\n",
             window->rect.x, window->rect.y, window->rect.width, window->rect.height);
+  meta_warning("Final queue: %d\n",
+               meta_window_would_unqueue(window, META_QUEUE_MOVE_RESIZE));
 }
 
 /**
