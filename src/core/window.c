@@ -1803,12 +1803,17 @@ meta_window_queue (MetaWindow   *window,
   g_return_if_fail (!window->override_redirect ||
                     (queue_types & META_QUEUE_MOVE_RESIZE) == 0);
 
-  if (window->unmanaging)
+  if (window->unmanaging) {
+    meta_warning("actually not queueing b/c unmanaging\n");
     return;
+  }
 
   queue_types &= ~priv->queued_types;
-  if (!queue_types)
+  if (!queue_types) {
+    meta_warning("actually not queuing b/c already queueing for this/these types: %d\n",
+                 queue_types);
     return;
+  }
 
   priv->queued_types |= queue_types;
   meta_display_queue_window (window->display, window, queue_types);

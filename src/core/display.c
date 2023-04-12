@@ -4044,9 +4044,10 @@ meta_display_queue_window (MetaDisplay   *display,
       if (!(queue_types & 1 << queue_idx))
         continue;
 
-      meta_warning("Queueing %s for window '%s'\n",
-                  meta_window_queue_names[queue_idx],
-                  meta_window_get_description (window));
+      meta_warning("REALLY QUEUEING %s for window '%s' (%s)\n",
+                   meta_window_queue_names[queue_idx],
+                   meta_window_get_description (window),
+                   meta_window_get_wm_class(window));
 
       priv->queue_windows[queue_idx] =
         g_list_prepend (priv->queue_windows[queue_idx], window);
