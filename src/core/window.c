@@ -3842,8 +3842,8 @@ meta_window_move_resize_internal (MetaWindow          *window,
   did_placement = !window->placed && window->calc_placement;
 
   /* We don't need it in the idle queue anymore. */
-  meta_warning("UNQUEUE window %s\n", meta_window_get_wm_class(window));
-  meta_window_unqueue (window, META_QUEUE_MOVE_RESIZE);
+  meta_warning("SKIPPING UNQUEUE window %s\n", meta_window_get_wm_class(window));
+  /*meta_window_unqueue (window, META_QUEUE_MOVE_RESIZE);*/
 
   if ((flags & META_MOVE_RESIZE_RESIZE_ACTION) && (flags & META_MOVE_RESIZE_MOVE_ACTION))
     {
