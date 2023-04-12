@@ -3923,6 +3923,14 @@ warn_on_incorrectly_unmanaged_window (MetaWindow *window)
 }
 
 static void
+log_window_unqueue_run (MetaWindow *window)
+{
+  meta_warning("UNQUEUE TO RUN move-resize for %s\n",
+               meta_window_get_wm_class(window));
+  meta_window_update_layout(window);
+}
+
+static void
 update_window_visibilities (MetaDisplay *display,
                             GList       *windows)
 {
@@ -3983,7 +3991,8 @@ static void
 move_resize (MetaDisplay *display,
              GList       *windows)
 {
-  g_list_foreach (windows, (GFunc) meta_window_update_layout, NULL);
+  g_list_foreach (windows, (GFunc) log_window_unqueue_run, NULL);
+  /*g_list_foreach (windows, (GFunc) meta_window_update_layout, NULL);*/
   g_list_foreach (windows, (GFunc) warn_on_incorrectly_unmanaged_window, NULL);
 }
 
