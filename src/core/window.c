@@ -1794,6 +1794,14 @@ meta_window_flush_calc_showing (MetaWindow *window)
   priv->queued_types &= ~META_QUEUE_CALC_SHOWING;
 }
 
+static void
+meta_window_flush_move_resize (MetaWindow *window)
+{
+  MetaWindowPrivate *priv = meta_window_get_instance_private (window);
+
+  priv->queued_types &= ~META_QUEUE_MOVE_RESIZE;
+}
+
 void
 meta_window_queue (MetaWindow   *window,
                    MetaQueueType queue_types)
@@ -3831,9 +3839,6 @@ meta_window_move_resize_internal (MetaWindow          *window,
 
   did_placement = !window->placed && window->calc_placement;
 
-  /* We don't need it in the idle queue anymore. */
-  meta_window_unqueue (window, META_QUEUE_MOVE_RESIZE);
-
   if ((flags & META_MOVE_RESIZE_RESIZE_ACTION) && (flags & META_MOVE_RESIZE_MOVE_ACTION))
     {
       /* We're both moving and resizing. Just use the passed in rect. */
@@ -4189,6 +4194,7 @@ meta_window_resize_frame_with_gravity (MetaWindow *window,
 void
 meta_window_update_layout (MetaWindow *window)
 {
+  meta_window_flush_move_resize (window);
   meta_window_move_resize_frame (window, FALSE,
                                  window->unconstrained_rect.x,
                                  window->unconstrained_rect.y,
