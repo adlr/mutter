@@ -3931,18 +3931,6 @@ log_window_unqueue_run (MetaWindow *window)
 }
 
 static void
-log_window (MetaWindow *window)
-{
-  char name[100] = {0};
-  if (!window) {
-    strcpy(name, "no-win");
-  } else {
-    strncpy(name, meta_window_get_wm_class(window), 50);
-  }
-  meta_warning("-- %s\n", name);
-}
-
-static void
 update_window_visibilities (MetaDisplay *display,
                             GList       *windows)
 {
@@ -4125,10 +4113,6 @@ meta_display_would_unqueue_window (MetaDisplay   *display,
   MetaCompositor *compositor = display->compositor;
   MetaLaters *laters = meta_compositor_get_laters (compositor);
   int queue_idx;
-
-  meta_warning("Currently queued windows for move/resize:\n");
-  g_list_foreach (priv->queue_windows[META_QUEUE_MOVE_RESIZE], (GFunc) log_window, NULL);
-  meta_warning("done listing queued windows\n");
 
   for (queue_idx = 0; queue_idx < META_N_QUEUE_TYPES; queue_idx++)
     {
