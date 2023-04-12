@@ -404,6 +404,12 @@ meta_window_wayland_move_resize_internal (MetaWindow                *window,
           int bounds_width;
           int bounds_height;
 
+          if (constrained_rect.width == window->rect.width &&
+              constrained_rect.height == window->rect.height &&
+              !(flags & META_MOVE_RESIZE_STATE_CHANGED) &&
+              wl_window->pending_configurations != NULL) {
+            meta_warning("only in this part of MRI b/c of pending configurations\n");
+          }
           if (!meta_wayland_surface_get_buffer (window->surface) &&
               !META_WINDOW_MAXIMIZED (window) &&
               window->tile_mode == META_TILE_NONE &&
