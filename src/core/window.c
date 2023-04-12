@@ -1780,7 +1780,7 @@ meta_window_unqueue (MetaWindow    *window,
   priv->queued_types &= ~queue_types;
 }
 
-static int
+int
 meta_window_would_unqueue (MetaWindow    *window,
                            MetaQueueType  queue_types)
 {
@@ -3865,6 +3865,8 @@ meta_window_move_resize_internal (MetaWindow          *window,
 
   /* We don't need it in the idle queue anymore. */
   meta_warning("SKIPPING UNQUEUE window %s\n", meta_window_get_wm_class(window));
+  meta_warning("queue at this point: %d\n",
+               meta_window_would_unqueue(window, META_QUEUE_MOVE_RESIZE));
   /*meta_window_unqueue (window, META_QUEUE_MOVE_RESIZE);*/
 
   if ((flags & META_MOVE_RESIZE_RESIZE_ACTION) && (flags & META_MOVE_RESIZE_MOVE_ACTION))

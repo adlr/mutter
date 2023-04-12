@@ -822,8 +822,10 @@ meta_workspace_invalidate_work_area (MetaWorkspace *workspace)
   for (l = windows; l != NULL; l = l->next)
     {
       MetaWindow *w = l->data;
-      meta_window_queue (w, META_QUEUE_MOVE_RESIZE);
       meta_warning("QUEUE window %s\n", meta_window_get_wm_class(w));
+      meta_window_queue (w, META_QUEUE_MOVE_RESIZE);
+      meta_warning("queue at this point (workspace): %d\n",
+                   meta_window_would_unqueue(w, META_QUEUE_MOVE_RESIZE));
     }
 
   g_list_free (windows);
