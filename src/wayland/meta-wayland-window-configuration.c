@@ -125,7 +125,8 @@ meta_wayland_window_configuration_free (MetaWaylandWindowConfiguration *configur
 void
 meta_wayland_window_configuration_log (MetaWaylandWindowConfiguration *configuration)
 {
-  meta_warning("MWWConfig: %s(%d, %d) %s(%d, %d), %s size, %s resiz, (%d, %d), sc: %d, grav: %d, fl: 0x%x, bounds(%d x %d), %s fs\n",
+  meta_warning("MWWConfig: SN %d %s(%d, %d) %s(%d, %d), %s size, %s resiz, (%d, %d), sc: %d, grav: %d, fl: 0x%x, bounds(%d x %d), %s fs\n",
+	       configuration->serial,
 	       configuration->has_position ? "pos" : "nopos",
 	       configuration->x, configuration->y,
 	       configuration->has_relative_position ? "relpos" : "norpos",
