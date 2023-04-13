@@ -3930,17 +3930,17 @@ log_window_unqueue_run (MetaWindow *window)
   meta_window_update_layout(window);
 }
 
-static void
-log_window (MetaWindow *window)
-{
-  char name[100] = {0};
-  if (!window) {
-    strcpy(name, "no-win");
-  } else {
-    strncpy(name, meta_window_get_wm_class(window), 50);
-  }
-  meta_warning("-- %s\n", name);
-}
+/* static void */
+/* log_window (MetaWindow *window) */
+/* { */
+/*   char name[100] = {0}; */
+/*   if (!window) { */
+/*     strcpy(name, "no-win"); */
+/*   } else { */
+/*     strncpy(name, meta_window_get_wm_class(window), 50); */
+/*   } */
+/*   meta_warning("-- %s\n", name); */
+/* } */
 
 static void
 update_window_visibilities (MetaDisplay *display,
@@ -4123,12 +4123,12 @@ meta_display_would_unqueue_window (MetaDisplay   *display,
 {
   MetaDisplayPrivate *priv = meta_display_get_instance_private (display);
   MetaCompositor *compositor = display->compositor;
-  MetaLaters *laters = meta_compositor_get_laters (compositor);
+  /* MetaLaters *laters = meta_compositor_get_laters (compositor); */
   int queue_idx;
 
   if (priv) {
     meta_warning("Currently queued %d windows for move/resize.\n",
-                 g_list_length(priv->queue_windows[queue_idx]));
+                 g_list_length(priv->queue_windows[META_QUEUE_MOVE_RESIZE]));
   }
 
   for (queue_idx = 0; queue_idx < META_N_QUEUE_TYPES; queue_idx++)
