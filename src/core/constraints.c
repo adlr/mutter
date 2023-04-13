@@ -261,8 +261,7 @@ do_all_constraints (MetaWindow         *window,
       if (!check_only)
         {
           /* Log how the constraint modified the position */
-          meta_topic (META_DEBUG_GEOMETRY,
-                      "info->current is %d,%d +%d,%d after %s",
+          meta_warning("info->current is %d,%d +%d,%d after %s",
                       info->current.x, info->current.y,
                       info->current.width, info->current.height,
                       constraint->name);
@@ -270,8 +269,7 @@ do_all_constraints (MetaWindow         *window,
       else if (!satisfied)
         {
           /* Log which constraint was not satisfied */
-          meta_topic (META_DEBUG_GEOMETRY,
-                      "constraint %s not satisfied.",
+          meta_warning("constraint %s not satisfied.",
                       constraint->name);
           return FALSE;
         }
@@ -472,8 +470,7 @@ setup_constraint_info (ConstraintInfo      *info,
     meta_workspace_get_onmonitor_region (cur_workspace, logical_monitor);
 
   /* Log all this information for debugging */
-  meta_topic (META_DEBUG_GEOMETRY,
-              "Setting up constraint info:\n"
+  meta_warning("Setting up constraint info:\n"
               "  orig: %d,%d +%d,%d\n"
               "  new : %d,%d +%d,%d\n"
               "  action_type     : %s\n"
