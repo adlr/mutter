@@ -4128,7 +4128,7 @@ meta_display_would_unqueue_window (MetaDisplay   *display,
 
   if (priv) {
     meta_warning("Currently queued %d windows for move/resize.\n",
-                 g_list_length(priv->queue_windows[META_QUEUE_MOVE_RESIZE]));
+                 g_list_length(priv->queue_windows[1/*META_QUEUE_MOVE_RESIZE*/]));
   }
 
   for (queue_idx = 0; queue_idx < META_N_QUEUE_TYPES; queue_idx++)

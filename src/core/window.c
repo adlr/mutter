@@ -3974,6 +3974,16 @@ meta_window_move_resize_internal (MetaWindow          *window,
   if (!(flags & META_MOVE_RESIZE_WAYLAND_FINISH_MOVE_RESIZE) || 
       flags & META_MOVE_RESIZE_WAYLAND_CLIENT_RESIZE)
     {
+      meta_warning("Changeing window %s unconstrained rect from {x: %d, y: %d, w: %d, h: %d} to {x: %d, y: %d, w: %d, h: %d}\n",
+                   meta_window_get_wm_class(window),
+                   window->unconstrained_rect.x,
+                   window->unconstrained_rect.y,
+                   window->unconstrained_rect.width,
+                   window->unconstrained_rect.height,
+                   unconstrained_rect.x,
+                   unconstrained_rect.y,
+                   unconstrained_rect.width,
+                   unconstrained_rect.height);
       window->unconstrained_rect = unconstrained_rect;
     }
 
@@ -4081,10 +4091,27 @@ meta_window_move_between_rects (MetaWindow  *window,
       rel_x = rel_y = scale_x = scale_y = 0;
     }
 
+  MetaRectangle orig_unconstrained = window->unconstrained_rect;
   window->unconstrained_rect.x = new_area->x + rel_x * scale_x;
   window->unconstrained_rect.y = new_area->y + rel_y * scale_y;
   window->saved_rect.x = window->unconstrained_rect.x;
   window->saved_rect.y = window->unconstrained_rect.y;
+
+  meta_backtrace("move_window_between_rects for window %s changed uncon rect from {x: %d, y: %d, w: %d, h: %d} to {x: %d, y: %d, w: %d, h: %d} w/ old_area (valid: %d) {x: %d, y: %d, w: %d, h: %d} and new area {x: %d, y: %d, w: %d, h: %d}\n",
+                 meta_window_get_wm_class(window),
+                 orig_unconstrained.x,
+                 orig_unconstrained.y,
+                 orig_unconstrained.width,
+                 orig_unconstrained.height,
+                 window->unconstrained_rect.x,
+                 window->unconstrained_rect.y,
+                 window->unconstrained_rect.width,
+                 window->unconstrained_rect.height,
+                 !!old_area,
+                 new_area->x,
+                 new_area->y,
+                 new_area->width,
+                 new_area->height);
 
   meta_window_move_resize_internal (window,
                                     (move_resize_flags |
