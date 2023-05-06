@@ -1457,6 +1457,9 @@ update_resize (MetaWindowDrag          *window_drag,
 
   new_rect.width = window_drag->initial_window_pos.width;
   new_rect.height = window_drag->initial_window_pos.height;
+  meta_warning("update_resize: (%d, %d) delta(%d, %d) anch(w: %d, h: %d)\n",
+               x, y, dx, dy,
+               new_rect.width, new_rect.height);
 
   /* Don't bother doing anything if no move has been specified.  (This
    * happens often, even in keyboard resizing, due to the warping of the
@@ -1546,6 +1549,7 @@ update_resize_cb (gpointer user_data)
 {
   MetaWindowDrag *window_drag = user_data;
 
+  meta_warning("update_resize_cb:\n");
   window_drag->move_resize_later_id = 0;
 
   update_resize (window_drag,
@@ -1569,6 +1573,7 @@ queue_update_resize (MetaWindowDrag          *window_drag,
   window_drag->last_edge_resistance_flags = flags;
   window_drag->latest_motion_x = x;
   window_drag->latest_motion_y = y;
+  meta_warning("queue_update_resize: (%d, %d)\n", x, y);
 
   if (window_drag->move_resize_later_id)
     return;
@@ -1739,6 +1744,8 @@ process_pointer_event (MetaWindowDrag     *window_drag,
           if (window->tile_match != NULL)
             flags |= (META_EDGE_RESISTANCE_SNAP | META_EDGE_RESISTANCE_WINDOWS);
 
+          meta_warning("process_pointer_event: (x: %f, y: %f)\n",
+                       x, y);
           queue_update_resize (window_drag, flags, x, y);
         }
       break;
