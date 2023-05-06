@@ -194,6 +194,27 @@ static void
 meta_window_wayland_configure (MetaWindowWayland              *wl_window,
                                MetaWaylandWindowConfiguration *configuration)
 {
+  MetaWindow *window = META_WINDOW (wl_window);
+
+  meta_warning("Sending MWWConfig: %u %spos(%d, %d) %srel(%d, %d) %s %s (%d, %d), %d, %d, 0x%x, (%d, %d), %s\n",
+               configuration->serial,
+               configuration->has_position ? "" : "no-",
+               configuration->x,
+               configuration->y,
+               configuration->has_relative_position ? "" : "no-",
+               configuration->rel_x,
+               configuration->rel_y,
+               configuration->has_size ? "hasSize" : "noSize",
+               configuration->is_resizing ? "isResize" : "noResiz",
+               configuration->width,
+               configuration->height,
+               configuration->scale,
+               configuration->gravity,
+               configuration->flags,
+               configuration->bounds_width,
+               configuration->bounds_height,
+               configuration->is_fullscreen ? "fs" : "no-fs");
+
   meta_wayland_surface_configure_notify (wl_window->surface, configuration);
 
   wl_window->pending_configurations =
@@ -427,6 +448,7 @@ meta_window_wayland_move_resize_internal (MetaWindow                *window,
                                                    geometry_scale,
                                                    flags,
                                                    gravity);
+
           meta_window_wayland_configure (wl_window, configuration);
           can_move_now = FALSE;
         }
@@ -443,11 +465,13 @@ meta_window_wayland_move_resize_internal (MetaWindow                *window,
 
   if (can_move_now)
     {
+      meta_warning("using constrained pos\n");
       new_x = constrained_rect.x;
       new_y = constrained_rect.y;
     }
   else
     {
+      meta_warning("using temp pos\n");
       new_x = temporary_rect.x;
       new_y = temporary_rect.y;
 
@@ -458,6 +482,13 @@ meta_window_wayland_move_resize_internal (MetaWindow                *window,
   if (new_x != window->rect.x || new_y != window->rect.y)
     {
       *result |= META_MOVE_RESIZE_RESULT_MOVED;
+      meta_warning("Window moving from {x: %d, y: %d, w: %d: h: %d} to {x: %d, y: %d}\n",
+                   window->rect.x,
+                   window->rect.y,
+                   window->rect.width,
+                   window->rect.height,
+                   new_x,
+                   new_y);
       window->rect.x = new_x;
       window->rect.y = new_y;
     }
@@ -1145,6 +1176,27 @@ meta_window_wayland_finish_move_resize (MetaWindow              *window,
     geometry_scale = acked_configuration->scale;
   else
     geometry_scale = meta_window_wayland_get_geometry_scale (window);
+
+  if (acked_configuration) {
+    meta_warning("Received MWWConfig: %u %spos(%d, %d) %srel(%d, %d) %s %s (%d, %d), %d, %d, 0x%x, (%d, %d), %s\n",
+                 acked_configuration->serial,
+                 acked_configuration->has_position ? "" : "no-",
+                 acked_configuration->x,
+                 acked_configuration->y,
+                 acked_configuration->has_relative_position ? "" : "no-",
+                 acked_configuration->rel_x,
+                 acked_configuration->rel_y,
+                 acked_configuration->has_size ? "hasSize" : "noSize",
+                 acked_configuration->is_resizing ? "isResize" : "noResiz",
+                 acked_configuration->width,
+                 acked_configuration->height,
+                 acked_configuration->scale,
+                 acked_configuration->gravity,
+                 acked_configuration->flags,
+                 acked_configuration->bounds_width,
+                 acked_configuration->bounds_height,
+                 acked_configuration->is_fullscreen ? "fs" : "no-fs");
+  }
 
   new_geom.x *= geometry_scale;
   new_geom.y *= geometry_scale;

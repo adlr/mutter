@@ -3762,6 +3762,24 @@ meta_window_move_resize_internal (MetaWindow          *window,
   gboolean moved_or_resized = FALSE;
   MetaWindowUpdateMonitorFlags update_monitor_flags;
 
+  meta_warning("window.c MRI %s %s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s (fr: {x: %d, w: %d (%d)}\n",
+               meta_window_get_wm_class(window),
+               flags & META_MOVE_RESIZE_CONFIGURE_REQUEST ? "CONFIGURE_REQUEST" : "",
+               flags & META_MOVE_RESIZE_USER_ACTION ? "USER_ACTION" : "",
+               flags & META_MOVE_RESIZE_MOVE_ACTION ? "MOVE_ACTION" : "",
+               flags & META_MOVE_RESIZE_RESIZE_ACTION ? "RESIZE_ACTION" : "",
+               flags & META_MOVE_RESIZE_WAYLAND_FINISH_MOVE_RESIZE ? "WAYLAND_FINISH_MOVE_RESIZE" : "",
+               flags & META_MOVE_RESIZE_STATE_CHANGED ? "STATE_CHANGED" : "",
+               flags & META_MOVE_RESIZE_UNMAXIMIZE ? "UNMAXIMIZE" : "",
+               flags & META_MOVE_RESIZE_UNFULLSCREEN ? "UNFULLSCREEN" : "",
+               flags & META_MOVE_RESIZE_FORCE_MOVE ? "FORCE_MOVE" : "",
+               flags & META_MOVE_RESIZE_WAYLAND_STATE_CHANGED ? "WAYLAND_STATE_CHANGED" : "",
+               flags & META_MOVE_RESIZE_FORCE_UPDATE_MONITOR ? "FORCE_UPDATE_MONITOR" : "",
+               flags & META_MOVE_RESIZE_PLACEMENT_CHANGED ? "PLACEMENT_CHANGED" : "",
+               flags & META_MOVE_RESIZE_WAYLAND_CLIENT_RESIZE ? "WAYLAND_CLIENT_RESIZE" : "",
+               flags & META_MOVE_RESIZE_CONSTRAIN ? "CONSTRAIN" : "",
+               frame_rect.x, frame_rect.width, frame_rect.x + frame_rect.width);
+
   g_return_if_fail (!window->override_redirect);
 
   /* The action has to be a move, a resize or the wayland client
@@ -3823,6 +3841,18 @@ meta_window_move_resize_internal (MetaWindow          *window,
       MetaRectangle old_rect;
       meta_window_get_frame_rect (window, &old_rect);
 
+      meta_warning("Window %s pre-constrain: temp:{x: %d, y: %d, w: %d, h: %d (%d)} constr:{x: %d, y: %d, w: %d, h: %d (%d)}\n",
+                   meta_window_get_wm_class(window),
+                   temporary_rect.x,
+                   temporary_rect.y,
+                   temporary_rect.width,
+                   temporary_rect.height,
+                   temporary_rect.x + temporary_rect.width,
+                   constrained_rect.x,
+                   constrained_rect.y,
+                   constrained_rect.width,
+                   constrained_rect.height,
+                   constrained_rect.x + constrained_rect.width);
       meta_window_constrain (window,
                              flags,
                              gravity,
@@ -3831,6 +3861,18 @@ meta_window_move_resize_internal (MetaWindow          *window,
                              &temporary_rect,
                              &rel_x,
                              &rel_y);
+      meta_warning("Window %s post-constrain: temp:{x: %d, y: %d, w: %d, h: %d (%d)} constr:{x: %d, y: %d, w: %d, h: %d (%d)}\n",
+                   meta_window_get_wm_class(window),
+                   temporary_rect.x,
+                   temporary_rect.y,
+                   temporary_rect.width,
+                   temporary_rect.height,
+                   temporary_rect.x + temporary_rect.width,
+                   constrained_rect.x,
+                   constrained_rect.y,
+                   constrained_rect.width,
+                   constrained_rect.height,
+                   constrained_rect.x + constrained_rect.width);
     }
   else if (window->placement.rule)
     {
@@ -4162,6 +4204,7 @@ meta_window_resize_frame_with_gravity (MetaWindow *window,
   flags = ((user_op ? META_MOVE_RESIZE_USER_ACTION : 0) |
            META_MOVE_RESIZE_RESIZE_ACTION |
            META_MOVE_RESIZE_CONSTRAIN);
+  meta_warning("meta_window_resize_frame_with_gravity: (w: %d, h: %d)\n", w, h);
   meta_window_move_resize_internal (window, flags, gravity, rect);
 }
 
