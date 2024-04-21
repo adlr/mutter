@@ -261,6 +261,10 @@ CLUTTER_EXPORT
 ClutterScrollSource      clutter_event_get_scroll_source             (const ClutterEvent     *event);
 
 CLUTTER_EXPORT
+void                     clutter_event_set_scroll_finish_flags       (ClutterEvent             *event,
+                                                                      ClutterScrollFinishFlags  finish_flags);
+
+CLUTTER_EXPORT
 ClutterScrollFinishFlags clutter_event_get_scroll_finish_flags       (const ClutterEvent     *event);
 
 CLUTTER_EXPORT
