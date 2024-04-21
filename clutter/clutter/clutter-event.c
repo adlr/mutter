@@ -1595,6 +1595,15 @@ clutter_event_get_scroll_source (const ClutterEvent *event)
   return event->scroll.scroll_source;
 }
 
+void
+clutter_event_set_scroll_finish_flags (ClutterEvent *event,
+                                       ClutterScrollFinishFlags finish_flags)
+{
+  g_return_if_fail (event != NULL);
+  g_return_if_fail (event->type == CLUTTER_SCROLL);
+
+  event->scroll.finish_flags = finish_flags;
+}
 /**
  * clutter_event_get_scroll_finish_flags:
  * @event: an scroll event
