@@ -574,6 +574,28 @@ clutter_event_get_related (const ClutterEvent *event)
 }
 
 /**
+ * clutter_event_set_scroll_delta:
+ * @event: a #ClutterEvent of type %CLUTTER_SCROLL
+ * @dx: delta on the horizontal axis
+ * @dy: delta on the vertical axis
+ *
+ * Sets the precise scrolling information of @event.
+ */
+void
+clutter_event_set_scroll_delta (ClutterEvent *event,
+                                gdouble       dx,
+                                gdouble       dy)
+{
+  g_return_if_fail (event != NULL);
+  g_return_if_fail (event->type == CLUTTER_SCROLL);
+
+  event->scroll.direction = CLUTTER_SCROLL_SMOOTH;
+
+  event->scroll.delta_x = dx;
+  event->scroll.delta_y = dy;
+}
+
+/**
  * clutter_event_get_scroll_delta:
  * @event: a #ClutterEvent of type %CLUTTER_SCROLL
  * @dx: (out): return location for the delta on the horizontal axis
