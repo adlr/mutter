@@ -211,6 +211,10 @@ ClutterActor *          clutter_event_get_related               (const ClutterEv
 CLUTTER_EXPORT
 ClutterScrollDirection  clutter_event_get_scroll_direction      (const ClutterEvent     *event);
 CLUTTER_EXPORT
+void                    clutter_event_set_scroll_delta          (ClutterEvent           *event,
+                                                                 gdouble                 dx,
+                                                                 gdouble                 dy);
+CLUTTER_EXPORT
 void                    clutter_event_get_scroll_delta          (const ClutterEvent     *event,
                                                                  gdouble                *dx,
                                                                  gdouble                *dy);
