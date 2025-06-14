@@ -102,9 +102,12 @@ meta_output_kms_from_kms_connector (MetaKmsConnector *connector)
 void
 meta_unlink_kms_connector (MetaKmsConnector *connector)
 {
-  if (!kms_connector_output_kms_quark)
+  if (!kms_connector_output_kms_quark) {
+    printf("meta_unlink_kms_connector: already unlinked\n");
     return;
+  }
 
+  printf("meta_unlink_kms_connector: unlinking\n");
   g_object_set_qdata (G_OBJECT (connector),
                       kms_connector_output_kms_quark,
                       NULL);

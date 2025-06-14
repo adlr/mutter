@@ -141,9 +141,11 @@ meta_output_get_monitor (MetaOutput *output)
 {
   MetaOutputPrivate *priv = meta_output_get_instance_private (output);
 
+  MetaMonitor* ret = priv->monitor;
+  printf("meta_output_get_monitor(output: %p) -> %p (at %p)\n", output, ret, &priv->monitor);
   g_warn_if_fail (priv->monitor);
 
-  return priv->monitor;
+  return ret;
 }
 
 void
@@ -154,6 +156,7 @@ meta_output_set_monitor (MetaOutput  *output,
 
   g_warn_if_fail (!priv->monitor);
 
+  printf("meta_output_set_monitor(output: %p, mon: %p)\n", output, monitor);
   priv->monitor = monitor;
 }
 
@@ -164,6 +167,7 @@ meta_output_unset_monitor (MetaOutput *output)
 
   g_warn_if_fail (priv->monitor);
 
+  printf("meta_output_unset_monitor(output: %p) (was %p)\n", output, priv->monitor);
   priv->monitor = NULL;
 }
 
