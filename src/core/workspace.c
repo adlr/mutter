@@ -1082,6 +1082,39 @@ meta_workspace_set_builtin_struts (MetaWorkspace *workspace,
   MtkRectangle display_rect = { 0 };
   GSList *l;
 
+  int strut_count = 0;
+  int strut_height = -1;
+  for (l = struts; l; l = l->next)
+    {
+      strut_count++;
+    }
+  if (struts) {
+    MetaStrut *strut = struts->data;
+    strut_height = strut->rect.height;
+  }
+  int old_strut_count = 0;
+  int old_strut_height = -1;
+  for (l = workspace->builtin_struts; l; l = l->next)
+    {
+      old_strut_count++;
+    }
+  if (workspace->builtin_struts) {
+    MetaStrut *strut = workspace->builtin_struts->data;
+    old_strut_height = strut->rect.height;
+  }
+
+  if (old_strut_count == 1 && old_strut_height != 32 &&
+      strut_count == 1 && strut_height == 32) {
+    meta_topic (META_DEBUG_WORKSPACES,
+                "won't set strut to height of 32! abort!");
+    return;
+  } else {
+    meta_topic (META_DEBUG_WORKSPACES,
+                "got new struts. old cnt %d h %d, new cnt %d h %d",
+                old_strut_count, old_strut_height,
+                strut_count, strut_height);
+  }
+
   meta_display_get_size (display, &display_rect.width, &display_rect.height);
 
   for (l = struts; l; l = l->next)
