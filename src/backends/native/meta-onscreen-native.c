@@ -99,8 +99,8 @@ struct _MetaOnscreenNative
 
   MetaRendererNative *renderer_native;
   MetaGpuKms *render_gpu;
-  MetaOutput *output;
-  MetaCrtc *crtc;
+  GList *outputs; // MetaOutput*
+  Glist *crtcs; // MetaCrtc*
 
   MetaOnscreenNativeSecondaryGpuState *secondary_gpu_state;
 
@@ -2970,17 +2970,19 @@ on_privacy_screen_enabled_changed (MetaOutput         *output,
 }
 
 MetaOnscreenNative *
-meta_onscreen_native_new (MetaRendererNative *renderer_native,
+meta_onscreen_native_tiled_new (MetaRendererNative *renderer_native,
                           MetaGpuKms         *render_gpu,
-                          MetaOutput         *output,
-                          MetaCrtc           *crtc,
+                          GList         *outputs,
+                          GList           *crtcs,
                           CoglContext        *cogl_context,
                           int                 width,
                           int                 height)
 {
   MetaOnscreenNative *onscreen_native;
   CoglFramebufferDriverConfig driver_config;
-  const MetaOutputInfo *output_info = meta_output_get_info (output);
+  MetaOutput *first_output = outputs->data;
+  MetaCrtc *first_crtc = crtcs->data;
+  const MetaOutputInfo *output_info = meta_output_get_info (first_output);
 
   driver_config = (CoglFramebufferDriverConfig) {
     .type = COGL_FRAMEBUFFER_DRIVER_TYPE_BACK,
@@ -2998,11 +3000,11 @@ meta_onscreen_native_new (MetaRendererNative *renderer_native,
   g_set_object (&onscreen_native->output, output);
   g_set_object (&onscreen_native->crtc, crtc);
 
-  if (meta_crtc_get_gamma_lut_size (crtc) > 0)
+  if (meta_crtc_get_gamma_lut_size (first_crtc) > 0)
     {
       onscreen_native->property.gamma_lut.invalidated = TRUE;
       onscreen_native->property.gamma_lut.signal_handler_id =
-        g_signal_connect (crtc, "gamma-lut-changed",
+        g_signal_connect (first_crtc, "gamma-lut-changed",
                           G_CALLBACK (on_gamma_lut_changed),
                           onscreen_native);
     }
@@ -3017,6 +3019,24 @@ meta_onscreen_native_new (MetaRendererNative *renderer_native,
     }
 
   return onscreen_native;
+}
+
+MetaOnscreenNative *
+meta_onscreen_native_new (MetaRendererNative *renderer_native,
+                          MetaGpuKms         *render_gpu,
+                          MetaOutput         *output,
+                          MetaCrtc           *crtc,
+                          CoglContext        *cogl_context,
+                          int                 width,
+                          int                 height)
+{
+  GList *outputs = g_list_append(NULL, output);
+  GList *crtcs = g_list_append(NULL, crtc);
+  MetaOnscreenNative *ret = meta_onscreen_native_tiled_new (renderer_native,
+    render_gpu, outputs, crtcs, cogl_context, width, height);
+  g_list_free(crtcs);
+  g_list_free(outputs);
+  return ret;
 }
 
 static void

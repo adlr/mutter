@@ -44,6 +44,12 @@ struct _MetaRendererClass
                                       MetaOutput          *output,
                                       MetaCrtc            *crtc,
                                       GError             **error);
+  MetaRendererView * (* create_tiled_view) (MetaRenderer        *renderer,
+                                      MetaLogicalMonitor  *logical_monitor,
+                                      MetaMonitor         *monitor,
+                                      GList          *output,
+                                      GList            *crtc,
+                                      GError             **error);
   void (* rebuild_views) (MetaRenderer *renderer);
   void (* resume) (MetaRenderer *renderer);
   GList * (* get_views_for_monitor) (MetaRenderer *renderer,

@@ -60,6 +60,13 @@ MetaOnscreenNative * meta_onscreen_native_new (MetaRendererNative *renderer_nati
                                                CoglContext        *cogl_context,
                                                int                 width,
                                                int                 height);
+MetaOnscreenNative * meta_onscreen_native_tiled_new (MetaRendererNative *renderer_native,
+                                               MetaGpuKms         *render_gpu,
+                                               GList         *output,
+                                               GList           *crtc,
+                                               CoglContext        *cogl_context,
+                                               int                 width,
+                                               int                 height);
 
 META_EXPORT_TEST
 MetaCrtc * meta_onscreen_native_get_crtc (MetaOnscreenNative *onscreen_native);

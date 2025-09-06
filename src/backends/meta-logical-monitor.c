@@ -266,11 +266,11 @@ foreach_crtc (MetaMonitor         *monitor,
 void
 meta_logical_monitor_foreach_crtc (MetaLogicalMonitor        *logical_monitor,
                                    MetaLogicalMonitorCrtcFunc func,
+                                   MetaLogicalMonitorTiledCrtcFunc tiled_func,
                                    gpointer                   user_data)
 {
   GList *l;
 
-  g_warning("Iterating through all logical monitors");
   for (l = logical_monitor->monitors; l; l = l->next)
     {
       MetaMonitor *monitor = l->data;
@@ -281,14 +281,32 @@ meta_logical_monitor_foreach_crtc (MetaLogicalMonitor        *logical_monitor,
         .user_data = user_data
       };
 
+      mode = meta_monitor_get_current_mode (monitor);
+
       g_warning("adlr MetaMonitor [%s] IS%s tiled",
         meta_monitor_get_display_name (monitor),
         META_IS_MONITOR_TILED(monitor) ? "" : " NOT");
+      if (META_IS_MONITOR_TILED(monitor)) {
+        GList* outputs = meta_monitor_get_outputs(monitor);
+        GList* crtcs = NULL;
+        for (l = outputs; l != NULL; l = l->next) {
+          MetaCrtc* crtc = meta_output_get_assigned_crtc(output);
+          if (crtc == NULL) {
+            g_warning("Got NULL crtc unexpectedly!");
+            return;
+          }
+          crtcs = g_list_append(crtcs, crtc);
+        }
+        tiled_func(logical_monitor,
+          monitor,
+          outputs,
+          crtcs,
+          user_data);
+        continue;
+      }
 
-      mode = meta_monitor_get_current_mode (monitor);
       meta_monitor_mode_foreach_crtc (monitor, mode, foreach_crtc, &data, NULL);
     }
-  g_warning("DONE Iterating through all logical monitors");
 }
 
 static void

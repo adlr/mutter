@@ -114,6 +114,28 @@ meta_renderer_create_view (MetaRenderer        *renderer,
   return view;
 }
 
+static MetaRendererView *
+meta_renderer_create_tiled_view (MetaRenderer        *renderer,
+                           MetaLogicalMonitor  *logical_monitor,
+                           MetaMonitor         *monitor,
+                           GList          *output,
+                           GList            *crtc,
+                           GError             **error)
+{
+  MetaRendererView *view;
+
+  view = META_RENDERER_GET_CLASS (renderer)->create_tiled_view (renderer,
+                                                          logical_monitor,
+                                                          monitor,
+                                                          output,
+                                                          crtc,
+                                                          error);
+
+  if (view)
+    meta_renderer_add_view (renderer, view);
+
+  return view;
+}
 /**
  * meta_renderer_rebuild_views:
  * @renderer: a #MetaRenderer object
@@ -145,6 +167,32 @@ create_crtc_view (MetaLogicalMonitor *logical_monitor,
                                     monitor,
                                     output,
                                     crtc,
+                                    &error);
+  if (!view)
+    {
+      g_warning ("Failed to create view for %s on %s: %s",
+                 meta_monitor_get_display_name (monitor),
+                 meta_output_get_name (output),
+                 error->message);
+    }
+}
+
+static void
+create_tiled_crtc_view (MetaLogicalMonitor *logical_monitor,
+                  MetaMonitor        *monitor,
+                  GList         *outputs,  // MetaOutput*
+                  GList           *crtcs,  // MetaCrtc*
+                  gpointer            user_data)
+{
+  MetaRenderer *renderer = user_data;
+  MetaRendererView *view;
+  g_autoptr (GError) error = NULL;
+
+  view = meta_renderer_create_tiled_view (renderer,
+                                    logical_monitor,
+                                    monitor,
+                                    outputs,
+                                    crtcs,
                                     &error);
   if (!view)
     {
@@ -188,6 +236,7 @@ meta_renderer_real_rebuild_views (MetaRenderer *renderer)
 
       meta_logical_monitor_foreach_crtc (logical_monitor,
                                          create_crtc_view,
+                                         create_tiled_crtc_view,
                                          renderer);
     }
 }

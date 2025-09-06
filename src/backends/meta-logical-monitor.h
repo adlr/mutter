@@ -57,6 +57,11 @@ typedef void (* MetaLogicalMonitorCrtcFunc) (MetaLogicalMonitor *logical_monitor
                                              MetaOutput         *output,
                                              MetaCrtc           *crtc,
                                              gpointer            user_data);
+typedef void (* MetaLogicalMonitorTiledCrtcFunc) (MetaLogicalMonitor *logical_monitor,
+                                             MetaMonitor        *monitor,
+                                             GList         *output,
+                                             GList           *crtc,
+                                             gpointer            user_data);
 
 MetaLogicalMonitor * meta_logical_monitor_new (MetaMonitorManager       *monitor_manager,
                                                MetaLogicalMonitorConfig *logical_monitor_config,
