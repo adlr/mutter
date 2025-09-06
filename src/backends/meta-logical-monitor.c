@@ -270,6 +270,7 @@ meta_logical_monitor_foreach_crtc (MetaLogicalMonitor        *logical_monitor,
 {
   GList *l;
 
+  g_warning("Iterating through all logical monitors");
   for (l = logical_monitor->monitors; l; l = l->next)
     {
       MetaMonitor *monitor = l->data;
@@ -280,9 +281,14 @@ meta_logical_monitor_foreach_crtc (MetaLogicalMonitor        *logical_monitor,
         .user_data = user_data
       };
 
+      g_warning("adlr MetaMonitor [%s] IS%s tiled",
+        meta_monitor_get_display_name (monitor),
+        META_IS_MONITOR_TILED(monitor) ? "" : " NOT");
+
       mode = meta_monitor_get_current_mode (monitor);
       meta_monitor_mode_foreach_crtc (monitor, mode, foreach_crtc, &data, NULL);
     }
+  g_warning("DONE Iterating through all logical monitors");
 }
 
 static void
