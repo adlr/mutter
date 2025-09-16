@@ -1190,6 +1190,8 @@ meta_kms_impl_device_atomic_process_update (MetaKmsImplDevice *impl_device,
               "[atomic] Committing update flags: %s",
               commit_flags_string (commit_flags));
 
+  g_warning("Doing page flip from:\n");
+  _cogl_debug_log_backtrace();
   fd = meta_kms_impl_device_get_fd (impl_device);
   ret = drmModeAtomicCommit (fd, req, commit_flags, impl_device);
   if (ret < 0)

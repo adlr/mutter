@@ -120,6 +120,7 @@ _cogl_parse_debug_string (const char *value,
 void
 _cogl_debug_init (void);
 
+COGL_EXPORT
 void
 _cogl_debug_log_backtrace (void);
 
