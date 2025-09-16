@@ -131,6 +131,7 @@ libeis_dep = dependency('libeis-1.0', version: libei_req)
 libei_dep = dependency('libei-1.0', version: libei_req)
 gvdb_dep = dependency('gvdb')
 libdisplay_info_dep = dependency('libdisplay-info', version: libdisplay_info_req)
+libbacktrace_dep = cc.find_library('backtrace', required: true)
 
 have_wayland = get_option('wayland')
 have_x11 = get_option('x11')

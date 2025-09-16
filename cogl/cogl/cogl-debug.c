@@ -31,6 +31,7 @@
 #include "config.h"
 
 #include <stdlib.h>
+#include <backtrace.h>
 
 #include "cogl/cogl-private.h"
 #include "cogl/cogl-debug.h"
@@ -221,4 +222,44 @@ _cogl_debug_check_environment (void)
                                 FALSE /* disable the flags */);
       env_string = NULL;
     }
+}
+
+const char* kTracesLogPath = "/var/run/user/1000/mutter-bt.log";
+static FILE* traces_fp = NULL;
+static struct backtrace_state *bt_state = NULL;
+static int bt_counter = 0;
+
+static void
+backtrace_error_cb (void *data, const char *msg, int errnum)
+{
+  g_printerr("Backtrace error [%d]: %s\n", errnum, msg);
+}
+
+void
+_cogl_debug_init (void)
+{
+  if (traces_fp == NULL)
+  {
+    traces_fp = fopen(kTracesLogPath, "a");
+    if (traces_fp == NULL) {
+      g_printerr("Unable to open traces log file!");
+      return;
+    }
+  }
+  if (bt_state == NULL)
+  {
+    bt_state = backtrace_create_state(NULL, 1, backtrace_error_cb, NULL);
+  }
+}
+
+void
+_cogl_debug_log_backtrace (void)
+{
+  if (bt_state == NULL || traces_fp == NULL) {
+    return;
+  }
+  bt_counter++;
+  fprintf(traces_fp, "Trace %d:\n", bt_counter);
+  backtrace_print(bt_state, 0, traces_fp);
+  g_print("Logged bt %d\n", bt_counter);
 }
