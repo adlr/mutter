@@ -61,6 +61,7 @@ cogl_deps = [
   cogl_pkg_deps,
   cogl_pkg_private_deps,
   m_dep,
+  libbacktrace_dep,
 ]
 
 cogl_c_args = [

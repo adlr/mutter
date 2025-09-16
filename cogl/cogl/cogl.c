@@ -84,6 +84,7 @@ cogl_init (void)
   if (initialized == FALSE)
     {
       _cogl_debug_check_environment ();
+      _cogl_debug_init ();
       cogl_init_cpu_caps ();
       initialized = TRUE;
     }
