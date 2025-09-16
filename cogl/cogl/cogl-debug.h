@@ -117,4 +117,11 @@ void
 _cogl_parse_debug_string (const char *value,
                           gboolean enable);
 
+void
+_cogl_debug_init (void);
+
+COGL_EXPORT
+void
+_cogl_debug_log_backtrace (void);
+
 G_END_DECLS
