@@ -388,8 +388,10 @@ meta_display_handle_event (MetaDisplay        *display,
     clutter_event_get_scroll_delta(event, &dx, &dy);
     const char* prefix = "google-chrome";
     const char* prefix2 = "chrome-";
+    const char* prefix3 = "Slack";
     if (text && (!strncmp(text, prefix, strlen(prefix)) ||
-                 !strncmp(text, prefix2, strlen(prefix2)))) {
+                 !strncmp(text, prefix2, strlen(prefix2)) ||
+                 !strncmp(text, prefix3, strlen(prefix3)))) {
       dx *= (0.6 * 53.0/120.0);
       dy *= (0.6 * 53.0/120.0);
 
