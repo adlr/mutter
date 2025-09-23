@@ -4015,6 +4015,36 @@ rebuild_monitors (MetaMonitorManager *manager)
                                                  monitor_normal);
             }
         }
+
+      for (k = meta_gpu_get_outputs (gpu); k; k = k->next)
+        {
+          MetaOutput *output = META_OUTPUT (k->data);
+          const MetaOutputInfo *output_info = meta_output_get_info (output);
+
+          if (meta_output_get_monitor (output))
+            continue;
+
+          if (output_info->tile_info.group_id)
+            {
+              MetaMonitorNormal *monitor_normal;
+
+              g_warning ("Failed to create monitor for tiled output %s; "
+                         "group id: %u, loc: %d,%d, creating normal monitor anyway.",
+                         meta_output_get_name (output),
+                         output_info->tile_info.group_id,
+                         output_info->tile_info.loc_h_tile,
+                         output_info->tile_info.loc_v_tile);
+
+              monitor_normal = meta_monitor_normal_new (manager, output);
+              manager->monitors = g_list_append (manager->monitors,
+                                                 monitor_normal);
+            }
+          else
+            {
+              g_warning ("Failed to create monitor for output %s",
+                         meta_output_get_name (output));
+            }
+        }
     }
 
   for (l = meta_monitor_manager_get_virtual_monitors (manager); l; l = l->next)
