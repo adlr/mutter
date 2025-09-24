@@ -3995,6 +3995,16 @@ rebuild_monitors (MetaMonitorManager *manager)
           MetaOutput *output = k->data;
           const MetaOutputInfo *output_info = meta_output_get_info (output);
 
+          g_warning("Monitor Tile Info: ID: %d, flags 0x%x, MaxH: %d, MaxV: %d, LocH: %d, LocV: %d, W: %d, H: %d",
+                    output_info->tile_info.group_id,
+                    output_info->tile_info.flags,
+                    output_info->tile_info.max_h_tiles,
+                    output_info->tile_info.max_v_tiles,
+                    output_info->tile_info.loc_h_tile,
+                    output_info->tile_info.loc_v_tile,
+                    output_info->tile_info.tile_w,
+                    output_info->tile_info.tile_h);
+
           if (output_info->tile_info.group_id)
             {
               if (is_main_tiled_monitor_output (output))
