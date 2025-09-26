@@ -153,6 +153,7 @@ meta_output_set_monitor (MetaOutput  *output,
   MetaOutputPrivate *priv = meta_output_get_instance_private (output);
 
   g_warn_if_fail (!priv->monitor);
+  g_warning("Setting monitor of output 0x%x to 0x%x", output, monitor);
 
   priv->monitor = monitor;
 }

@@ -3978,6 +3978,8 @@ rebuild_monitors (MetaMonitorManager *manager)
   GList *gpus;
   GList *l;
 
+  g_warning("rebuild_monitors started");
+
   if (manager->monitors)
     {
       g_list_free_full (manager->monitors, (GDestroyNotify) destroy_monitor);
@@ -3995,7 +3997,8 @@ rebuild_monitors (MetaMonitorManager *manager)
           MetaOutput *output = k->data;
           const MetaOutputInfo *output_info = meta_output_get_info (output);
 
-          g_warning("Monitor Tile Info: ID: %d, flags 0x%x, MaxH: %d, MaxV: %d, LocH: %d, LocV: %d, W: %d, H: %d",
+          g_warning("Output 0x%x Tile Info: ID: %d, flags 0x%x, MaxH: %d, MaxV: %d, LocH: %d, LocV: %d, W: %d, H: %d",
+                    output,
                     output_info->tile_info.group_id,
                     output_info->tile_info.flags,
                     output_info->tile_info.max_h_tiles,
@@ -4030,17 +4033,23 @@ rebuild_monitors (MetaMonitorManager *manager)
         {
           MetaOutput *output = META_OUTPUT (k->data);
           const MetaOutputInfo *output_info = meta_output_get_info (output);
-
-          if (meta_output_get_monitor (output))
+          MetaMonitor *monitor = meta_output_get_monitor (output);
+          
+          if (monitor) {
+            g_warning ("Output %s (0x%x) has monitor 0x%x", meta_output_get_name (output),
+                       output,
+                       monitor);
             continue;
+          }
 
           if (output_info->tile_info.group_id)
             {
               MetaMonitorNormal *monitor_normal;
 
-              g_warning ("Failed to create monitor for tiled output %s; "
+              g_warning ("Failed to create monitor for tiled output %s (0x%x); "
                          "group id: %u, loc: %d,%d, creating normal monitor anyway.",
                          meta_output_get_name (output),
+                         output,
                          output_info->tile_info.group_id,
                          output_info->tile_info.loc_h_tile,
                          output_info->tile_info.loc_v_tile);
@@ -4051,8 +4060,9 @@ rebuild_monitors (MetaMonitorManager *manager)
             }
           else
             {
-              g_warning ("Failed to create monitor for output %s",
-                         meta_output_get_name (output));
+              g_warning ("Failed to create monitor for output %s (0x%x)",
+                         meta_output_get_name (output),
+                         output);
             }
         }
     }
@@ -4072,6 +4082,7 @@ rebuild_monitors (MetaMonitorManager *manager)
   update_panel_orientation_managed (manager);
   update_has_builtin_panel (manager);
   update_night_light_supported (manager);
+  g_warning("rebuild_monitors ended");
 }
 
 void
