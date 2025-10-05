@@ -555,6 +555,7 @@ assign_primary_plane (MetaCrtcKms            *crtc_kms,
               meta_crtc_get_id (crtc), src_rect->origin.x, src_rect->origin.y,
               src_rect->size.width, src_rect->size.height,
               dst_rect->x, dst_rect->y, dst_rect->width, dst_rect->height);
+  _cogl_debug_log_backtrace();
 
   kms_crtc = meta_crtc_kms_get_kms_crtc (crtc_kms);
   primary_kms_plane = meta_crtc_kms_get_assigned_primary_plane (crtc_kms);
