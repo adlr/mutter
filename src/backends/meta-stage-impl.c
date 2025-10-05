@@ -496,6 +496,7 @@ meta_stage_impl_redraw_view_primary (MetaStageImpl    *stage_impl,
   COGL_TRACE_DEFINE_COUNTER_INT (RedrawViewPrimaryDamageArea,
                                  "RedrawDamageArea",
                                  "the damaged area of the redraw");
+  g_warning("meta_stage_impl_redraw_view_primary %p start", stage_view);
 
   clutter_stage_view_get_layout (stage_view, &view_rect);
   fb_scale = clutter_stage_view_get_scale (stage_view);
@@ -567,6 +568,9 @@ meta_stage_impl_redraw_view_primary (MetaStageImpl    *stage_impl,
         queued_redraw_clip = mtk_region_ref (redraw_clip);
     }
 
+  if (mtk_region_is_empty (fb_clip_region)) {
+      g_warning("meta_stage_impl_redraw_view_primary %p will end early", stage_view);
+  }
   g_return_if_fail (!mtk_region_is_empty (fb_clip_region));
 
   /* XXX: It seems there will be a race here in that the stage
@@ -720,6 +724,7 @@ meta_stage_impl_redraw_view_primary (MetaStageImpl    *stage_impl,
                     swap_region,
                     swap_with_damage,
                     frame);
+  g_warning("meta_stage_impl_redraw_view_primary %p ending normally", stage_view);
 }
 
 static gboolean
