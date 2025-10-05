@@ -832,6 +832,8 @@ clutter_stage_view_add_redraw_clip (ClutterStageView   *view,
       maybe_mark_full_redraw (view, &priv->redraw_clip);
     }
 
+  g_warning("clutter_stage_view_add_redraw_clip %p %d %d %d %d set to true",
+            view, clip->x, clip->y, clip->width, clip->height);
   priv->has_redraw_clip = TRUE;
 }
 
