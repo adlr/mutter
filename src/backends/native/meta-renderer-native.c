@@ -810,7 +810,10 @@ free_unused_gpu_datas (MetaRendererNative *renderer_native)
   for (l = meta_renderer_get_views (renderer); l; l = l->next)
     {
       MetaRendererView *view = l->data;
-      MetaCrtc *crtc = meta_renderer_view_get_crtc (view);
+      // Assume all crtcs share the same GPU
+      GList *crtcs = meta_renderer_view_get_crtcs (view);
+      g_warn_if_fail(crtcs != NULL);
+      MetaCrtc *crtc = crtcs->data;
       MetaGpu *gpu;
 
       gpu = meta_crtc_get_gpu (crtc);
@@ -1528,7 +1531,7 @@ meta_renderer_native_create_view (MetaRenderer        *renderer,
                               "color-device", color_device,
                               "stage", meta_backend_get_stage (backend),
                               "layout", &view_layout,
-                              "crtc", crtc,
+                              "crtcs", g_list_prepend(NULL, crtc),
                               "scale", scale,
                               "framebuffer", framebuffer,
                               "use-shadowfb", use_shadowfb,

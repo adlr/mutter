@@ -120,6 +120,7 @@ meta_stage_native_redraw_view (ClutterStageWindow *stage_window,
   MetaStageImpl *stage_impl = META_STAGE_IMPL (stage_window);
   MetaBackend *backend = meta_stage_impl_get_backend (stage_impl);
   MetaRenderer *renderer = meta_backend_get_renderer (backend);
+  GList *crtcs;
   MetaCrtc *crtc;
 
   meta_renderer_native_before_redraw (META_RENDERER_NATIVE (renderer),
@@ -128,7 +129,10 @@ meta_stage_native_redraw_view (ClutterStageWindow *stage_window,
   CLUTTER_STAGE_WINDOW_CLASS (meta_stage_native_parent_class)->
       redraw_view (stage_window, view, frame);
 
-  crtc = meta_renderer_view_get_crtc (META_RENDERER_VIEW (view));
+  // ADLRTODO: handle multiple crtcs
+  crtcs = meta_renderer_view_get_crtcs (META_RENDERER_VIEW (view));
+  g_warn_if_fail(crtcs != NULL);
+  crtc = crtcs->data;
 
   if (!clutter_frame_has_result (frame))
     {

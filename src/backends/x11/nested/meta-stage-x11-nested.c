@@ -90,6 +90,7 @@ draw_view (MetaStageX11Nested *stage_nested,
   CoglFramebuffer *onscreen = COGL_FRAMEBUFFER (stage_x11->onscreen);
   ClutterStageView *stage_view = CLUTTER_STAGE_VIEW (renderer_view);
   MetaCrtc *crtc;
+  GList *crtcs;
   const MetaCrtcConfig *crtc_config;
   graphene_matrix_t projection_matrix;
   graphene_matrix_t transform;
@@ -100,7 +101,9 @@ draw_view (MetaStageX11Nested *stage_nested,
   texture_width = cogl_texture_get_width (texture);
   texture_height = cogl_texture_get_height (texture);
 
-  crtc = g_object_get_data (G_OBJECT (renderer_view), "crtc");
+  // Currently assumes only one crtc:
+  crtcs = meta_renderer_view_get_crtcs (renderer_view);
+  crtc = crtcs ? crtcs->data : NULL;
   crtc_config = meta_crtc_get_config (crtc);
 
   sample_x = 0;

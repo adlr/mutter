@@ -165,6 +165,7 @@ meta_test_hotplug_multi_view_invalidation (void)
   gulong texture_changed_handler_id;
   g_autoptr (GError) error = NULL;
   GList *views;
+  GList *crtcs;
 
   seat = meta_backend_get_default_seat (backend);
   virtual_pointer = clutter_seat_create_virtual_device (seat,
@@ -181,8 +182,12 @@ meta_test_hotplug_multi_view_invalidation (void)
 
   meta_monitor_manager_reload (monitor_manager);
   views = meta_renderer_get_views (renderer);
-  g_assert_true (META_IS_CRTC_KMS (meta_renderer_view_get_crtc (views->data)));
-  g_assert_true (META_IS_CRTC_VIRTUAL (meta_renderer_view_get_crtc (views->next->data)));
+  crtcs = meta_renderer_view_get_crtcs (views->data);
+  g_assert_true(g_list_length (crtcs) == 1);
+  g_assert_true (META_IS_CRTC_KMS (crtcs->data));
+  crtcs = meta_renderer_view_get_crtcs (views->next->data);
+  g_assert_true(g_list_length (crtcs) == 1);
+  g_assert_true (META_IS_CRTC_VIRTUAL (crtcs->data));
 
   meta_wait_for_paint (test_context);
 
@@ -200,8 +205,12 @@ meta_test_hotplug_multi_view_invalidation (void)
                                        META_MONITORS_CONFIG_FLAG_NONE);
   meta_monitor_manager_reload (monitor_manager);
   views = meta_renderer_get_views (renderer);
-  g_assert_true (META_IS_CRTC_KMS (meta_renderer_view_get_crtc (views->data)));
-  g_assert_true (META_IS_CRTC_VIRTUAL (meta_renderer_view_get_crtc (views->next->data)));
+  crtcs = meta_renderer_view_get_crtcs (views->data);
+  g_assert_true(g_list_length (crtcs) == 1);
+  g_assert_true (META_IS_CRTC_KMS (crtcs->data));
+  crtcs = meta_renderer_view_get_crtcs (views->next->data);
+  g_assert_true(g_list_length (crtcs) == 1);
+  g_assert_true (META_IS_CRTC_VIRTUAL (crtcs->data));
   g_assert_true (texture_changed);
 
   g_signal_handler_disconnect (cursor_sprite, texture_changed_handler_id);
