@@ -406,11 +406,15 @@ static MetaWaylandOutput *
 get_output_for_stage_view (MetaWaylandCompositor *compositor,
                            ClutterStageView      *stage_view)
 {
+  GList *crtcs;
   MetaCrtc *crtc;
   MetaOutput *output;
   MetaMonitor *monitor;
 
-  crtc = meta_renderer_view_get_crtc (META_RENDERER_VIEW (stage_view));
+  // Assuming any crtc will do
+  crtcs = meta_renderer_view_get_crtcs (META_RENDERER_VIEW (stage_view));
+  g_warn_if_fail (crtcs != NULL);
+  crtc = crtcs->data;
 
   /*
    * All outputs occupy the same region of the screen, as their contents are

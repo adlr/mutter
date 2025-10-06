@@ -44,7 +44,7 @@ enum
   PROP_0,
 
   PROP_BACKEND,
-  PROP_CRTC,
+  PROP_CRTCS,
   PROP_COLOR_DEVICE,
 
   PROP_LAST
@@ -55,20 +55,20 @@ static GParamSpec *obj_props[PROP_LAST];
 typedef struct _MetaRendererViewPrivate
 {
   MetaBackend *backend;
-  MetaCrtc *crtc;
+  GList *crtcs;  // Of type MetaCrtc *.
   MetaColorDevice *color_device;
 } MetaRendererViewPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (MetaRendererView, meta_renderer_view,
                             META_TYPE_STAGE_VIEW)
 
-MetaCrtc *
-meta_renderer_view_get_crtc (MetaRendererView *view)
+GList *
+meta_renderer_view_get_crtcs (MetaRendererView *view)
 {
   MetaRendererViewPrivate *priv =
     meta_renderer_view_get_instance_private (view);
 
-  return priv->crtc;
+  return priv->crtcs;
 }
 
 static void
@@ -134,8 +134,8 @@ meta_renderer_view_get_property (GObject    *object,
     case PROP_BACKEND:
       g_value_set_object (value, priv->backend);
       break;
-    case PROP_CRTC:
-      g_value_set_object (value, priv->crtc);
+    case PROP_CRTCS:
+      g_value_set_pointer (value, priv->crtcs);
       break;
     case PROP_COLOR_DEVICE:
       g_value_set_object (value, priv->color_device);
@@ -161,8 +161,9 @@ meta_renderer_view_set_property (GObject      *object,
     case PROP_BACKEND:
       priv->backend = g_value_get_object (value);
       break;
-    case PROP_CRTC:
-      priv->crtc = g_value_get_object (value);
+    case PROP_CRTCS:
+      g_warn_if_fail (priv->crtcs == NULL);
+      priv->crtcs = g_value_get_pointer (value);
       break;
     case PROP_COLOR_DEVICE:
       g_set_object (&priv->color_device, g_value_get_object (value));
@@ -229,9 +230,8 @@ meta_renderer_view_class_init (MetaRendererViewClass *klass)
                          G_PARAM_CONSTRUCT_ONLY |
                          G_PARAM_STATIC_STRINGS);
 
-  obj_props[PROP_CRTC] =
-    g_param_spec_object ("crtc", NULL, NULL,
-                         META_TYPE_CRTC,
+  obj_props[PROP_CRTCS] =
+    g_param_spec_pointer ("crtcs", NULL, NULL,
                          G_PARAM_READWRITE |
                          G_PARAM_CONSTRUCT_ONLY |
                          G_PARAM_STATIC_STRINGS);

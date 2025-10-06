@@ -336,6 +336,7 @@ meta_cursor_renderer_native_update_cursor (MetaCursorRenderer *cursor_renderer,
   gboolean cursor_changed;
   GList *views;
   GList *l;
+  GList *m;
 
   COGL_TRACE_BEGIN_SCOPED (MetaCursorRendererNative,
                            "Meta::CursorRendererNative::update_cursor()");
@@ -355,75 +356,79 @@ meta_cursor_renderer_native_update_cursor (MetaCursorRenderer *cursor_renderer,
     {
       MetaStageView *view = l->data;
       MetaRendererView *renderer_view = META_RENDERER_VIEW (view);
-      MetaCrtc *crtc = meta_renderer_view_get_crtc (renderer_view);
-      MetaCrtcNative *crtc_native = META_CRTC_NATIVE (crtc);
-      MetaGpu *gpu = meta_crtc_get_gpu (crtc);
-      ClutterColorState *target_color_state =
-        clutter_stage_view_get_output_color_state (CLUTTER_STAGE_VIEW (view));
-      CursorStageView *cursor_stage_view = NULL;
-      gboolean has_hw_cursor = FALSE;
-
-      cursor_stage_view = get_cursor_stage_view (view);
-      g_assert (cursor_stage_view);
-
-      if (!META_IS_CRTC_KMS (crtc) ||
-          !is_hw_cursor_available_for_gpu (META_GPU_KMS (gpu)) ||
-          !meta_crtc_native_is_hw_cursor_supported (crtc_native))
+      for (m = meta_renderer_view_get_crtcs (renderer_view); m; m = m->next)
         {
-          cursor_stage_view->is_hw_cursor_valid = TRUE;
-          has_hw_cursor = FALSE;
-        }
-      else if (cursor_sprite && !meta_backend_is_hw_cursors_inhibited (backend))
-        {
-          meta_cursor_sprite_realize_texture (cursor_sprite);
+          MetaCrtc *crtc = m->data;
+          MetaCrtcNative *crtc_native = META_CRTC_NATIVE (crtc);
+          MetaGpu *gpu = meta_crtc_get_gpu (crtc);
+          ClutterColorState *target_color_state =
+            clutter_stage_view_get_output_color_state (CLUTTER_STAGE_VIEW (view));
+          CursorStageView *cursor_stage_view = NULL;
+          gboolean has_hw_cursor = FALSE;
 
-          if (cursor_changed ||
-              !cursor_stage_view->is_hw_cursor_valid)
+          cursor_stage_view = get_cursor_stage_view (view);
+          g_assert (cursor_stage_view);
+
+          if (!META_IS_CRTC_KMS (crtc) ||
+              !is_hw_cursor_available_for_gpu (META_GPU_KMS (gpu)) ||
+              !meta_crtc_native_is_hw_cursor_supported (crtc_native))
             {
-              has_hw_cursor = realize_cursor_sprite_for_crtc (cursor_renderer,
-                                                              META_CRTC_KMS (crtc),
-                                                              target_color_state,
-                                                              cursor_sprite);
-
               cursor_stage_view->is_hw_cursor_valid = TRUE;
+              has_hw_cursor = FALSE;
+            }
+          else if (cursor_sprite && !meta_backend_is_hw_cursors_inhibited (backend))
+            {
+              meta_cursor_sprite_realize_texture (cursor_sprite);
+
+              if (cursor_changed ||
+                  !cursor_stage_view->is_hw_cursor_valid)
+                {
+                  has_hw_cursor = realize_cursor_sprite_for_crtc (cursor_renderer,
+                                                                  META_CRTC_KMS (crtc),
+                                                                  target_color_state,
+                                                                  cursor_sprite);
+
+                  cursor_stage_view->is_hw_cursor_valid = TRUE;
+                }
+              else
+                {
+                  has_hw_cursor =
+                    cursor_stage_view->is_hw_cursor_valid &&
+                    cursor_stage_view->has_hw_cursor;
+                }
+
+              if (has_hw_cursor)
+                cursor_stage_view->needs_emit_painted = TRUE;
             }
           else
             {
-              has_hw_cursor =
-                cursor_stage_view->is_hw_cursor_valid &&
-                cursor_stage_view->has_hw_cursor;
+              cursor_stage_view->is_hw_cursor_valid = FALSE;
+              has_hw_cursor = FALSE;
             }
 
-          if (has_hw_cursor)
-            cursor_stage_view->needs_emit_painted = TRUE;
-        }
-      else
-        {
-          cursor_stage_view->is_hw_cursor_valid = FALSE;
-          has_hw_cursor = FALSE;
-        }
-
-      if (cursor_stage_view->has_hw_cursor != has_hw_cursor)
-        {
-          if (has_hw_cursor)
-            meta_stage_view_inhibit_cursor_overlay (view);
-          else
-            meta_stage_view_uninhibit_cursor_overlay (view);
-
-          cursor_stage_view->has_hw_cursor = has_hw_cursor;
-
-          if (!has_hw_cursor)
+          if (cursor_stage_view->has_hw_cursor != has_hw_cursor)
             {
-              MetaCrtcKms *crtc_kms = META_CRTC_KMS (crtc);
-              MetaKmsCrtc *kms_crtc = meta_crtc_kms_get_kms_crtc (crtc_kms);
+              if (has_hw_cursor)
+                meta_stage_view_inhibit_cursor_overlay (view);
+              else
+                meta_stage_view_uninhibit_cursor_overlay (view);
 
-              meta_kms_cursor_manager_update_sprite (kms_cursor_manager,
-                                                     kms_crtc,
-                                                     NULL,
-                                                     MTK_MONITOR_TRANSFORM_NORMAL,
-                                                     NULL);
+              cursor_stage_view->has_hw_cursor = has_hw_cursor;
+
+              if (!has_hw_cursor)
+                {
+                  MetaCrtcKms *crtc_kms = META_CRTC_KMS (crtc);
+                  MetaKmsCrtc *kms_crtc = meta_crtc_kms_get_kms_crtc (crtc_kms);
+
+                  meta_kms_cursor_manager_update_sprite (kms_cursor_manager,
+                                                        kms_crtc,
+                                                        NULL,
+                                                        MTK_MONITOR_TRANSFORM_NORMAL,
+                                                        NULL);
+                }
             }
         }
+
     }
 
   if (cursor_changed)

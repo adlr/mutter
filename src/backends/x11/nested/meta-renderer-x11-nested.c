@@ -106,13 +106,13 @@ meta_renderer_x11_nested_create_view (MetaRenderer        *renderer,
                        "color-device", color_device,
                        "stage", meta_backend_get_stage (backend),
                        "layout", &view_layout,
-                       "crtc", crtc,
+                       "crtcs", g_list_prepend(NULL, crtc),
                        "refresh-rate", mode_info->refresh_rate,
                        "framebuffer", COGL_FRAMEBUFFER (fake_onscreen),
                        "transform", MTK_MONITOR_TRANSFORM_NORMAL,
                        "scale", view_scale,
                        NULL);
-  g_object_set_data (G_OBJECT (view), "crtc", crtc);
+  g_object_set_data (G_OBJECT (view), "crtcs", g_list_prepend(NULL, crtc));
 
   return view;
 }
