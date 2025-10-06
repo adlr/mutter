@@ -198,13 +198,19 @@ meta_renderer_get_view_for_crtc (MetaRenderer *renderer,
 {
   MetaRendererPrivate *priv = meta_renderer_get_instance_private (renderer);
   GList *l;
+  GList *m;
 
   for (l = priv->views; l; l = l->next)
     {
       MetaRendererView *view = l->data;
 
-      if (meta_renderer_view_get_crtc (view) == crtc)
-        return view;
+      for (m = meta_renderer_view_get_crtcs (view); m; m = m->next)
+        {
+          MetaCrtc *renderer_crtc = m->data;
+
+          if (renderer_crtc == crtc)
+            return view;
+        }
     }
 
   return NULL;

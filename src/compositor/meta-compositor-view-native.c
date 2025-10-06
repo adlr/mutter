@@ -148,6 +148,7 @@ find_scanout_candidate (MetaCompositorView  *compositor_view,
   MetaCursorTracker *cursor_tracker =
     meta_backend_get_cursor_tracker (backend);
   CoglTexture *cursor_sprite;
+  GList *crtcs;
   MetaCrtc *crtc;
   CoglFramebuffer *framebuffer;
   MetaWindowActor *window_actor;
@@ -204,7 +205,10 @@ find_scanout_candidate (MetaCompositorView  *compositor_view,
         }
     }
 
-  crtc = meta_renderer_view_get_crtc (renderer_view);
+  // ADLRTODO: handle multiple crtcs
+  crtcs = meta_renderer_view_get_crtcs (renderer_view);
+  g_warn_if_fail(crtcs != NULL);
+  crtc = crtcs->data;
   if (!META_IS_CRTC_KMS (crtc))
     {
       meta_topic (META_DEBUG_RENDER,

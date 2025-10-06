@@ -353,7 +353,9 @@ on_scanout_fallback_before_paint (ClutterStage     *stage,
                                   KmsRenderingTest *test)
 {
   MetaRendererView *view = META_RENDERER_VIEW (stage_view);
-  MetaCrtc *crtc = meta_renderer_view_get_crtc (view);
+  GList *crtcs = meta_renderer_view_get_crtcs (view);
+  g_assert_true (g_list_length (crtcs) == 1);
+  MetaCrtc *crtc = crtcs->data;
   MetaKmsCrtc *kms_crtc = meta_crtc_kms_get_kms_crtc (META_CRTC_KMS (crtc));
   MetaKmsDevice *kms_device = meta_kms_crtc_get_device (kms_crtc);
   MetaFrameNative *frame_native = meta_frame_native_from_frame (frame);

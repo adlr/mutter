@@ -33,4 +33,4 @@ struct _MetaRendererViewClass
 };
 
 META_EXPORT_TEST
-MetaCrtc *meta_renderer_view_get_crtc (MetaRendererView *view);
+GList *meta_renderer_view_get_crtcs (MetaRendererView *view);
