@@ -40,12 +40,16 @@ update_frame_clock_deadline_evasion (MetaRendererView *renderer_view)
 {
   ClutterStageView *stage_view = CLUTTER_STAGE_VIEW (renderer_view);
   ClutterFrameClock *frame_clock;
+  GList *crtcs;
   MetaCrtc *crtc;
   MetaCrtcNative *crtc_native;
   int64_t deadline_evasion_us;
 
   frame_clock = clutter_stage_view_get_frame_clock (stage_view);
-  crtc = meta_renderer_view_get_crtc (renderer_view);
+  // ADLRTODO: handle multiple crtcs:
+  crtcs = meta_renderer_view_get_crtcs (renderer_view);
+  g_warn_if_fail(crtcs != NULL);
+  crtc = crtcs->data;
   crtc_native = META_CRTC_NATIVE (crtc);
 
   deadline_evasion_us = meta_crtc_native_get_deadline_evasion (crtc_native);
