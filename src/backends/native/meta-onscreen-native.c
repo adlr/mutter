@@ -99,8 +99,8 @@ struct _MetaOnscreenNative
 
   MetaRendererNative *renderer_native;
   MetaGpuKms *render_gpu;
-  MetaOutput *output;
-  MetaCrtc *crtc;
+  GList *outputs;  // MetaOutput *
+  GList *crtcs;  // MetaCrtc *
 
   MetaOnscreenNativeSecondaryGpuState *secondary_gpu_state;
 
@@ -789,7 +789,10 @@ meta_onscreen_native_set_crtc_mode (CoglOnscreen              *onscreen,
                                     MetaRendererNativeGpuData *renderer_gpu_data)
 {
   MetaOnscreenNative *onscreen_native = META_ONSCREEN_NATIVE (onscreen);
-  MetaCrtcKms *crtc_kms = META_CRTC_KMS (onscreen_native->crtc);
+  // ADLRTODO: what's even in this kms_update? For now assume only 1 output and crtc
+  g_warn_if_fail(g_list_length(onscreen_native->outputs) == 1);
+  g_warn_if_fail(g_list_length(onscreen_native->crtcs) == 1);
+  MetaCrtcKms *crtc_kms = META_CRTC_KMS (onscreen_native->crtcs->data);
 
   COGL_TRACE_BEGIN_SCOPED (MetaOnscreenNativeSetCrtcModes,
                            "Meta::OnscreenNative::set_crtc_mode()");
@@ -836,10 +839,10 @@ meta_onscreen_native_set_crtc_mode (CoglOnscreen              *onscreen,
     }
 
   meta_crtc_kms_set_mode (crtc_kms, kms_update);
-  set_underscan (META_OUTPUT_KMS (onscreen_native->output), kms_update);
-  set_max_bpc (META_OUTPUT_KMS (onscreen_native->output), kms_update);
-  set_rgb_range (META_OUTPUT_KMS (onscreen_native->output), kms_update);
-  set_color_mode (META_OUTPUT_KMS (onscreen_native->output), kms_update);
+  set_underscan (META_OUTPUT_KMS (onscreen_native->outputs->data), kms_update);
+  set_max_bpc (META_OUTPUT_KMS (onscreen_native->outputs->data), kms_update);
+  set_rgb_range (META_OUTPUT_KMS (onscreen_native->outputs->data), kms_update);
+  set_color_mode (META_OUTPUT_KMS (onscreen_native->outputs->data), kms_update);
 }
 
 static void
@@ -1612,7 +1615,8 @@ maybe_post_next_frame (CoglOnscreen *onscreen)
   MetaMonitorManager *monitor_manager =
     meta_backend_get_monitor_manager (backend);
   MetaOnscreenNative *onscreen_native = META_ONSCREEN_NATIVE (onscreen);
-  MetaOutputKms *output_kms = META_OUTPUT_KMS (onscreen_native->output);
+  // ADLRTODO: handle multiple crtcs and outputs in this function
+  MetaOutputKms *output_kms = META_OUTPUT_KMS (onscreen_native->outputs->data);
   MetaKmsConnector *kms_connector =
     meta_output_kms_get_kms_connector (output_kms);
   MetaPowerSave power_save_mode;
@@ -1652,7 +1656,7 @@ maybe_post_next_frame (CoglOnscreen *onscreen)
 
   clear_superseded_frame (onscreen);
 
-  kms_crtc = meta_crtc_kms_get_kms_crtc (META_CRTC_KMS (onscreen_native->crtc));
+  kms_crtc = meta_crtc_kms_get_kms_crtc (META_CRTC_KMS (onscreen_native->crtcs->data));
   kms_device = meta_kms_crtc_get_device (kms_crtc);
   kms_update = meta_frame_native_ensure_kms_update (frame_native,
                                                     kms_device);
@@ -1679,7 +1683,7 @@ maybe_post_next_frame (CoglOnscreen *onscreen)
   if (!meta_onscreen_native_flip_crtc (onscreen,
                                        frame,
                                        onscreen_native->view,
-                                       onscreen_native->crtc,
+                                       onscreen_native->crtcs->data,
                                        kms_update,
                                        flip_flags,
                                        region))
@@ -1765,7 +1769,8 @@ meta_onscreen_native_is_buffer_scanout_compatible (CoglOnscreen *onscreen,
                                                    CoglScanout  *scanout)
 {
   MetaOnscreenNative *onscreen_native = META_ONSCREEN_NATIVE (onscreen);
-  MetaCrtc *crtc = onscreen_native->crtc;
+  // ADLRTODO: handle multiple crtcs
+  MetaCrtc *crtc = onscreen_native->crtcs->data;
   MetaCrtcKms *crtc_kms = META_CRTC_KMS (crtc);
   MetaGpuKms *gpu_kms;
   MetaKmsDevice *kms_device;
@@ -1947,7 +1952,8 @@ static void
 maybe_update_frame_sync (MetaOnscreenNative *onscreen_native,
                          ClutterFrame       *frame)
 {
-  MetaCrtcKms *crtc_kms = META_CRTC_KMS (onscreen_native->crtc);
+  // ADLRTODO: P2 handle multiple crtcs and outputs
+  MetaCrtcKms *crtc_kms = META_CRTC_KMS (onscreen_native->crtcs->data);
   MetaKmsCrtc *kms_crtc = meta_crtc_kms_get_kms_crtc (crtc_kms);
   MetaKmsDevice *kms_device = meta_kms_crtc_get_device (kms_crtc);
   const MetaKmsCrtcState *crtc_state =
@@ -1960,7 +1966,7 @@ maybe_update_frame_sync (MetaOnscreenNative *onscreen_native,
   MetaKmsUpdate *kms_update;
   gboolean frame_sync_enabled = FALSE;
 
-  if (meta_output_is_vrr_enabled (onscreen_native->output))
+  if (meta_output_is_vrr_enabled (onscreen_native->outputs->data))
     frame_sync_enabled = onscreen_native->frame_sync_requested;
 
   if (frame_sync_enabled != onscreen_native->frame_sync_enabled)
@@ -1987,7 +1993,8 @@ meta_onscreen_native_before_redraw (CoglOnscreen *onscreen,
 
   if (meta_get_debug_paint_flags () & META_DEBUG_PAINT_SYNC_CURSOR_PRIMARY)
     {
-      MetaCrtcKms *crtc_kms = META_CRTC_KMS (onscreen_native->crtc);
+      // ADLRTODO: P2 handle multiple crtcs and test it
+      MetaCrtcKms *crtc_kms = META_CRTC_KMS (onscreen_native->crtcs->data);
       MetaKmsCrtc *kms_crtc = meta_crtc_kms_get_kms_crtc (crtc_kms);
 
       meta_kms_device_await_flush (meta_kms_crtc_get_device (kms_crtc), kms_crtc);
@@ -2000,9 +2007,11 @@ void
 meta_onscreen_native_prepare_frame (CoglOnscreen *onscreen,
                                     ClutterFrame *frame)
 {
+  // ADLRTODO: P2 handle multiple crtcs and outputs in onscreen_native
+  // Look into this if we have gamma issues
   MetaOnscreenNative *onscreen_native = META_ONSCREEN_NATIVE (onscreen);
-  MetaCrtcKms *crtc_kms = META_CRTC_KMS (onscreen_native->crtc);
-  MetaOutputKms *output_kms = META_OUTPUT_KMS (onscreen_native->output);
+  MetaCrtcKms *crtc_kms = META_CRTC_KMS (onscreen_native->crtcs->data);
+  MetaOutputKms *output_kms = META_OUTPUT_KMS (onscreen_native->outputs->data);
   MetaKmsCrtc *kms_crtc = meta_crtc_kms_get_kms_crtc (crtc_kms);
   MetaKmsDevice *kms_device = meta_kms_crtc_get_device (kms_crtc);;
   MetaFrameNative *frame_native = meta_frame_native_from_frame (frame);
@@ -2033,7 +2042,8 @@ meta_onscreen_native_prepare_frame (CoglOnscreen *onscreen,
       kms_update = meta_frame_native_ensure_kms_update (frame_native,
                                                         kms_device);
 
-      enabled = meta_output_is_privacy_screen_enabled (onscreen_native->output);
+      // Assuming we can just use the first output here
+      enabled = meta_output_is_privacy_screen_enabled (onscreen_native->outputs->data);
       meta_kms_update_set_privacy_screen (kms_update, kms_connector, enabled);
       onscreen_native->property.privacy_screen.invalidated = FALSE;
       onscreen_native->property.privacy_screen.target_frame_counter =
@@ -2083,8 +2093,9 @@ void
 meta_onscreen_native_finish_frame (CoglOnscreen *onscreen,
                                    ClutterFrame *frame)
 {
+  // ADLRTODO: support multiple crtcs here
   MetaOnscreenNative *onscreen_native = META_ONSCREEN_NATIVE (onscreen);
-  MetaCrtc *crtc = onscreen_native->crtc;
+  MetaCrtc *crtc = onscreen_native->crtcs->data;
   MetaKmsCrtc *kms_crtc = meta_crtc_kms_get_kms_crtc (META_CRTC_KMS (crtc));
   MetaKmsDevice *kms_device = meta_kms_crtc_get_device (kms_crtc);
   MetaFrameNative *frame_native = meta_frame_native_from_frame (frame);
@@ -2155,7 +2166,8 @@ post_nonprimary_plane_update (MetaOnscreenNative *onscreen_native,
                               ClutterFrame       *frame,
                               MetaKmsUpdate      *kms_update)
 {
-  MetaCrtc *crtc = onscreen_native->crtc;
+  // ADLRTODO: support multiple crtcs
+  MetaCrtc *crtc = onscreen_native->crtcs->data;
   MetaKmsCrtc *kms_crtc = meta_crtc_kms_get_kms_crtc (META_CRTC_KMS (crtc));
   MetaKmsDevice *kms_device = meta_kms_crtc_get_device (kms_crtc);
   g_autoptr (MetaKmsFeedback) kms_feedback = NULL;
@@ -2213,7 +2225,8 @@ should_surface_be_sharable (CoglOnscreen *onscreen)
 {
   MetaOnscreenNative *onscreen_native = META_ONSCREEN_NATIVE (onscreen);
 
-  if (META_GPU_KMS (meta_crtc_get_gpu (onscreen_native->crtc)) ==
+  // Assume all crtcs share the same gpu
+  if (META_GPU_KMS (meta_crtc_get_gpu (onscreen_native->crtcs->data)) ==
       onscreen_native->render_gpu)
     return FALSE;
   else
@@ -2292,7 +2305,8 @@ get_supported_modifiers (CoglOnscreen *onscreen,
                          uint32_t      format)
 {
   MetaOnscreenNative *onscreen_native = META_ONSCREEN_NATIVE (onscreen);
-  MetaCrtcKms *crtc_kms = META_CRTC_KMS (onscreen_native->crtc);
+  // Assuming we can use the first crtc if there are multiple
+  MetaCrtcKms *crtc_kms = META_CRTC_KMS (onscreen_native->crtcs->data);
   MetaGpu *gpu;
   g_autoptr (GArray) modifiers = NULL;
 
@@ -2309,7 +2323,8 @@ static GArray *
 get_supported_kms_formats (CoglOnscreen *onscreen)
 {
   MetaOnscreenNative *onscreen_native = META_ONSCREEN_NATIVE (onscreen);
-  MetaCrtcKms *crtc_kms = META_CRTC_KMS (onscreen_native->crtc);
+  // Assuming we can just look at the first crtc
+  MetaCrtcKms *crtc_kms = META_CRTC_KMS (onscreen_native->crtcs->data);
   MetaKmsPlane *plane = meta_crtc_kms_get_assigned_primary_plane (crtc_kms);
 
   return meta_kms_plane_copy_drm_format_list (plane);
@@ -2328,7 +2343,8 @@ choose_onscreen_egl_config (CoglOnscreen  *onscreen,
   CoglRendererEGL *cogl_renderer_egl = cogl_renderer->winsys;
   EGLDisplay egl_display = cogl_renderer_egl->edpy;
   MetaEgl *egl = meta_onscreen_native_get_egl (onscreen_native);
-  MetaCrtcKms *crtc_kms = META_CRTC_KMS (onscreen_native->crtc);
+  // Assuming we can just use the first crtc if there are multiple (tiled display)
+  MetaCrtcKms *crtc_kms = META_CRTC_KMS (onscreen_native->crtcs->data);
   MetaKmsPlane *kms_plane = meta_crtc_kms_get_assigned_primary_plane (crtc_kms);
   EGLint attrs[MAX_EGL_CONFIG_ATTRIBS];
   static const uint32_t alphaless_10bpc_formats[] = {
@@ -2621,7 +2637,8 @@ meta_onscreen_native_allocate (CoglFramebuffer  *framebuffer,
 #endif
   CoglFramebufferClass *parent_class;
 
-  if (META_GPU_KMS (meta_crtc_get_gpu (onscreen_native->crtc)) !=
+  // Assuming all crtcs share the same gpu
+  if (META_GPU_KMS (meta_crtc_get_gpu (onscreen_native->crtcs->data)) !=
       onscreen_native->render_gpu)
     {
       if (!init_secondary_gpu_state (onscreen_native->renderer_native,
@@ -2747,7 +2764,8 @@ init_secondary_gpu_state_gpu_copy_mode (MetaRendererNative         *renderer_nat
 
   secondary_gpu_state = g_new0 (MetaOnscreenNativeSecondaryGpuState, 1);
 
-  gpu_kms = META_GPU_KMS (meta_crtc_get_gpu (onscreen_native->crtc));
+  // Assuming all crtcs share the same gpu
+  gpu_kms = META_GPU_KMS (meta_crtc_get_gpu (onscreen_native->crtcs->data));
   secondary_gpu_state->gpu_kms = gpu_kms;
   secondary_gpu_state->renderer_gpu_data = renderer_gpu_data;
   secondary_gpu_state->gbm.surface = gbm_surface;
@@ -2844,7 +2862,8 @@ init_secondary_gpu_state_cpu_copy_mode (MetaRendererNative         *renderer_nat
   width = cogl_framebuffer_get_width (framebuffer);
   height = cogl_framebuffer_get_height (framebuffer);
 
-  gpu_kms = META_GPU_KMS (meta_crtc_get_gpu (onscreen_native->crtc));
+  // Assuming all crtcs share the same gpu
+  gpu_kms = META_GPU_KMS (meta_crtc_get_gpu (onscreen_native->crtcs->data));
   render_device = renderer_gpu_data->render_device;
   meta_topic (META_DEBUG_KMS,
               "Secondary GPU %s using DRM format '%s' (0x%x) for a %dx%d output.",
@@ -2893,7 +2912,8 @@ init_secondary_gpu_state (MetaRendererNative  *renderer_native,
                           GError             **error)
 {
   MetaOnscreenNative *onscreen_native = META_ONSCREEN_NATIVE (onscreen);
-  MetaGpu *gpu = meta_crtc_get_gpu (onscreen_native->crtc);
+  // Assuming all crtcs share the same gpu
+  MetaGpu *gpu = meta_crtc_get_gpu (onscreen_native->crtcs->data);
   MetaRendererNativeGpuData *renderer_gpu_data;
   g_autoptr (GError) local_error = NULL;
 
@@ -2940,10 +2960,11 @@ init_secondary_gpu_state (MetaRendererNative  *renderer_native,
 void
 meta_onscreen_native_invalidate (MetaOnscreenNative *onscreen_native)
 {
+  // Presumably only using first crtc/output is okay?
   const MetaOutputInfo *output_info =
-    meta_output_get_info (onscreen_native->output);
+    meta_output_get_info (onscreen_native->outputs->data);
 
-  if (meta_crtc_get_gamma_lut_size (onscreen_native->crtc) > 0)
+  if (meta_crtc_get_gamma_lut_size (onscreen_native->crtcs->data) > 0)
     onscreen_native->property.gamma_lut.invalidated = TRUE;
   if (output_info->supports_privacy_screen)
     onscreen_native->property.privacy_screen.invalidated = TRUE;
@@ -2973,15 +2994,17 @@ on_privacy_screen_enabled_changed (MetaOutput         *output,
 MetaOnscreenNative *
 meta_onscreen_native_new (MetaRendererNative *renderer_native,
                           MetaGpuKms         *render_gpu,
-                          MetaOutput         *output,
-                          MetaCrtc           *crtc,
+                          GList              *outputs,
+                          GList              *crtcs,
                           CoglContext        *cogl_context,
                           int                 width,
                           int                 height)
 {
   MetaOnscreenNative *onscreen_native;
   CoglFramebufferDriverConfig driver_config;
-  const MetaOutputInfo *output_info = meta_output_get_info (output);
+  g_warn_if_fail(g_list_length(outputs) > 0);
+  g_warn_if_fail(g_list_length(crtcs) > 0);
+  const MetaOutputInfo *output_info = meta_output_get_info (outputs->data);
 
   driver_config = (CoglFramebufferDriverConfig) {
     .type = COGL_FRAMEBUFFER_DRIVER_TYPE_BACK,
@@ -2996,14 +3019,15 @@ meta_onscreen_native_new (MetaRendererNative *renderer_native,
   onscreen_native->renderer_native = renderer_native;
   onscreen_native->render_gpu = render_gpu;
 
-  g_set_object (&onscreen_native->output, output);
-  g_set_object (&onscreen_native->crtc, crtc);
+  onscreen_native->outputs = outputs;
+  onscreen_native->crtcs = crtcs;
 
-  if (meta_crtc_get_gamma_lut_size (crtc) > 0)
+  // Set signal handles on first crtc only. Hope that's enough?
+  if (meta_crtc_get_gamma_lut_size (crtcs->data) > 0)
     {
       onscreen_native->property.gamma_lut.invalidated = TRUE;
       onscreen_native->property.gamma_lut.signal_handler_id =
-        g_signal_connect (crtc, "gamma-lut-changed",
+        g_signal_connect (crtcs->data, "gamma-lut-changed",
                           G_CALLBACK (on_gamma_lut_changed),
                           onscreen_native);
     }
@@ -3012,7 +3036,7 @@ meta_onscreen_native_new (MetaRendererNative *renderer_native,
     {
       onscreen_native->property.privacy_screen.invalidated = TRUE;
       onscreen_native->property.privacy_screen.signal_handler_id =
-        g_signal_connect (output, "notify::is-privacy-screen-enabled",
+        g_signal_connect (outputs->data, "notify::is-privacy-screen-enabled",
                           G_CALLBACK (on_privacy_screen_enabled_changed),
                           onscreen_native);
     }
@@ -3024,9 +3048,9 @@ static void
 clear_invalidation_handlers (MetaOnscreenNative *onscreen_native)
 {
   g_clear_signal_handler (&onscreen_native->property.gamma_lut.signal_handler_id,
-                          onscreen_native->crtc);
+                          onscreen_native->crtcs->data);
   g_clear_signal_handler (&onscreen_native->property.privacy_screen.signal_handler_id,
-                          onscreen_native->output);
+                          onscreen_native->outputs->data);
 }
 
 static void
@@ -3081,8 +3105,8 @@ meta_onscreen_native_dispose (GObject *object)
   g_clear_pointer (&onscreen_native->secondary_gpu_state,
                    secondary_gpu_state_free);
 
-  g_clear_object (&onscreen_native->output);
-  g_clear_object (&onscreen_native->crtc);
+  g_list_free_full (onscreen_native->outputs, g_object_unref);
+  g_list_free_full (onscreen_native->crtcs, g_object_unref);
 }
 
 static void
@@ -3112,7 +3136,9 @@ meta_onscreen_native_class_init (MetaOnscreenNativeClass *klass)
 MetaCrtc *
 meta_onscreen_native_get_crtc (MetaOnscreenNative *onscreen_native)
 {
-  return onscreen_native->crtc;
+  // ADLRTODO: remove or change this function
+  g_warn_if_fail(g_list_length(onscreen_native->crtcs) == 1);
+  return onscreen_native->crtcs->data;
 }
 
 void

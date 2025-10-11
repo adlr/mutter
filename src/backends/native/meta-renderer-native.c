@@ -1472,10 +1472,14 @@ meta_renderer_native_create_view (MetaRenderer        *renderer,
         {
           MetaGpuKms *primary_gpu_kms = renderer_native->primary_gpu_kms;
 
+          // ADLRTODO: handle multiple outpus/crtcs in this function
+          // ownership passed to onscreen_native
+          GList *outputs = g_list_prepend (NULL, g_object_ref (output));
+          GList *crtcs = g_list_prepend (NULL, g_object_ref (crtc));
           onscreen_native = meta_onscreen_native_new (renderer_native,
                                                       primary_gpu_kms,
-                                                      output,
-                                                      crtc,
+                                                      outputs,
+                                                      crtcs,
                                                       cogl_context,
                                                       onscreen_width,
                                                       onscreen_height);

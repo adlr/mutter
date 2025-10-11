@@ -55,8 +55,8 @@ void meta_onscreen_native_set_view (CoglOnscreen     *onscreen,
 
 MetaOnscreenNative * meta_onscreen_native_new (MetaRendererNative *renderer_native,
                                                MetaGpuKms         *render_gpu,
-                                               MetaOutput         *output,
-                                               MetaCrtc           *crtc,
+                                               GList              *output,
+                                               GList              *crtc,
                                                CoglContext        *cogl_context,
                                                int                 width,
                                                int                 height);
