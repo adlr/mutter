@@ -37,7 +37,7 @@ struct _MetaKmsUpdate
   gboolean is_sealed;
 
   gboolean is_latchable;
-  MetaKmsCrtc *latch_crtc;
+  GList *latch_crtcs; // List of MetaKmsCrtc *
 
   GList *mode_sets;
   GList *plane_assignments;
@@ -253,17 +253,25 @@ update_latch_crtc (MetaKmsUpdate *update,
 {
   if (update->is_latchable)
     {
-      if (update->latch_crtc)
+      if (!g_list_find(update->latch_crtcs, crtc))
         {
-          if (update->latch_crtc != crtc)
+          if (update->latch_crtcs)
             {
-              update->is_latchable = FALSE;
-              update->latch_crtc = NULL;
+              int cur_width = meta_kms_crtc_get_current_state(update->latch_crtcs->data)->rect.width;
+              int cur_height = meta_kms_crtc_get_current_state(update->latch_crtcs->data)->rect.height;
+              int new_width = meta_kms_crtc_get_current_state(crtc)->rect.width;
+              int new_height = meta_kms_crtc_get_current_state(crtc)->rect.height;
+              if (cur_width != new_width || cur_height != new_height)
+                {
+                  g_warning ("Adding latch crtc (%d x %d) but already have (%d x %d)",
+                            new_width, new_height, cur_width, cur_height);
+                  update->is_latchable = FALSE;
+                  g_list_free (update->latch_crtcs);
+                  update->latch_crtcs = NULL;
+                  return;
+                }
             }
-        }
-      else
-        {
-          update->latch_crtc = crtc;
+          update->latch_crtcs = g_list_prepend (update->latch_crtcs, crtc);
         }
     }
 }
@@ -1220,10 +1228,10 @@ meta_kms_update_set_flushing (MetaKmsUpdate *update,
   update_latch_crtc (update, crtc);
 }
 
-MetaKmsCrtc *
-meta_kms_update_get_latch_crtc (MetaKmsUpdate *update)
+GList *
+meta_kms_update_get_latch_crtcs (MetaKmsUpdate *update)
 {
-  return update->latch_crtc;
+  return update->latch_crtcs;
 }
 
 int
