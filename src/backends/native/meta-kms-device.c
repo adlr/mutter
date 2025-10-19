@@ -344,6 +344,8 @@ meta_kms_device_post_update (MetaKmsDevice       *device,
   PostUpdateData *data;
 
   g_return_if_fail (meta_kms_update_get_device (update) == device);
+  // g_warning ("meta_kms_device_post_update called from");
+  // _cogl_debug_log_backtrace();
 
   data = g_new0 (PostUpdateData, 1);
   *data = (PostUpdateData) {

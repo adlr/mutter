@@ -1390,6 +1390,8 @@ ensure_deadline_timer_armed (MetaKmsImplDevice *impl_device,
   if (!meta_kms_crtc_get_current_state (crtc_frame->crtc)->is_drm_mode_valid)
     return FALSE;
 
+  // g_warning ("Calling ensure_deadline_timer_armed(impl dev: %p, crtc frame: %p)",
+  //            impl_device, crtc_frame);
   if (!meta_kms_crtc_determine_deadline (crtc_frame->crtc,
                                          &next_deadline_us,
                                          &next_presentation_us,
@@ -1783,6 +1785,8 @@ ensure_crtc_frame (MetaKmsImplDevice *impl_device,
   CrtcFrame *crtc_frame;
   gboolean want_deadline_timer, have_deadline_timer;
 
+  // g_warning ("ensure_crtc_frame called from bt:");
+  // _cogl_debug_log_backtrace();
   crtc_frame = get_crtc_frame (impl_device, latch_crtc);
   if (!crtc_frame)
     {
@@ -1806,6 +1810,8 @@ ensure_crtc_frame (MetaKmsImplDevice *impl_device,
       g_autofree char *name = NULL;
 
       timer_fd = timerfd_create (CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC);
+      // g_warning ("Dispatching to crtc_frame_deadline_dispatch via thread");
+      // _cogl_debug_log_backtrace();
       source = meta_thread_impl_register_fd (thread_impl,
                                              timer_fd,
                                              crtc_frame_deadline_dispatch,

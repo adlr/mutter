@@ -721,6 +721,12 @@ meta_kms_crtc_determine_deadline (MetaKmsCrtc  *crtc,
           next_presentation_us += skip_us;
           next_deadline_us += skip_us;
         }
+      // static int64_t last_next_presentation_us = 0;
+      // g_warning ("vblank next pres: %ld (%ld), interval: %ld, evasion: %ld, vbdur: %ld",
+      //           next_presentation_us, next_presentation_us - last_next_presentation_us,
+      //           refresh_interval_us,
+      //         deadline_evasion_us, vblank_duration_us);
+      // last_next_presentation_us = next_presentation_us;
     }
 
   *out_next_presentation_us = next_presentation_us;
