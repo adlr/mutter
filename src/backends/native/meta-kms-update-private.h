@@ -235,7 +235,7 @@ void meta_kms_update_realize (MetaKmsUpdate     *update,
 
 gboolean meta_kms_update_get_needs_modeset (MetaKmsUpdate *update);
 
-MetaKmsCrtc * meta_kms_update_get_latch_crtc (MetaKmsUpdate *update);
+GList * /* of MetaKmsCrtc* */ meta_kms_update_get_latch_crtcs (MetaKmsUpdate *update);
 
 void meta_kms_page_flip_listener_unref (MetaKmsPageFlipListener *listener);
 
