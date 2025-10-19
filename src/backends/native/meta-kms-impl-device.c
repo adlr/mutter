@@ -1548,7 +1548,7 @@ queue_result_feedback (MetaKmsImplDevice *impl_device,
 
 static MetaKmsFeedback *
 do_process (MetaKmsImplDevice *impl_device,
-            MetaKmsCrtc       *latch_crtc,
+            GList             *latch_crtcs,  // of type MetaKmsCrtc *
             MetaKmsUpdate     *update,
             MetaKmsUpdateFlag  flags)
 {
@@ -1561,11 +1561,15 @@ do_process (MetaKmsImplDevice *impl_device,
   CrtcFrame *crtc_frame = NULL;
   MetaKmsFeedback *feedback;
   MetaKmsResourceChanges changes = META_KMS_RESOURCE_CHANGE_NONE;
+  GList *l;
 
   COGL_TRACE_BEGIN_SCOPED (MetaKmsImplDeviceProcess,
                            "Meta::KmsImplDevice::do_process()");
 
-  update = meta_kms_impl_filter_update (impl, latch_crtc, update, flags);
+  for (l = latch_crtcs; l; l = l->next) {
+    MetaKmsCrtc *latch_crtc = l->data;
+    update = meta_kms_impl_filter_update (impl, latch_crtc, update, flags);
+  }
 
   if (!update || meta_kms_update_is_empty (update))
     {
@@ -1587,8 +1591,10 @@ do_process (MetaKmsImplDevice *impl_device,
 
   if (!(flags & META_KMS_UPDATE_FLAG_TEST_ONLY))
     {
-      if (latch_crtc)
+      if (latch_crtcs)
         {
+          // ADLRTODO: support multiple latch_crtcs
+          MetaKmsCrtc *latch_crtc = latch_crtcs->data;
           crtc_frame = get_crtc_frame (impl_device, latch_crtc);
           if (crtc_frame && crtc_frame->pending_update)
             {
@@ -1602,6 +1608,16 @@ do_process (MetaKmsImplDevice *impl_device,
         {
           GMainContext *thread_context =
             meta_thread_impl_get_main_context (thread_impl);
+
+          for (l = crtc_frame->crtcs; l; l = l->next)
+            {
+              MetaKmsCrtc *kms_crtc = l->data;
+              meta_kms_update_add_page_flip_listener (update,
+                                                      kms_crtc,
+                                                      &crtc_page_flip_listener_vtable,
+                                                      thread_context,
+                                                      crtc_frame, NULL);
+            }
 
           meta_kms_update_add_page_flip_listener (update,
                                                   crtc_frame->crtc,
@@ -1668,10 +1684,13 @@ crtc_frame_deadline_dispatch (MetaThreadImpl  *thread_impl,
       return GINT_TO_POINTER (FALSE);
     }
 
+  // ADLRTODO: support more crtcs coming into crtc_frame_deadline_dispatch
+  GList* latch_crtcs = g_list_prepend (NULL, crtc_frame->crtc);
   feedback = do_process (impl_device,
-                         crtc_frame->crtc,
+                         latch_crtcs,
                          g_steal_pointer (&crtc_frame->pending_update),
                          META_KMS_UPDATE_FLAG_NONE);
+  g_list_free (latch_crtcs);
 
   update_done_time_us = g_get_monotonic_time ();
   /* Calculate how long after the planned start of deadline dispatch it finished */
@@ -1876,7 +1895,10 @@ meta_kms_impl_device_do_process_update (MetaKmsImplDevice *impl_device,
 
   meta_kms_device_handle_flush (priv->device, latch_crtc);
 
-  feedback = do_process (impl_device, latch_crtc, update, flags);
+  // ADLRTODO: support more crtcs coming into meta_kms_impl_device_do_process_update
+  GList *latch_crtcs = g_list_prepend (NULL, latch_crtc);
+  feedback = do_process (impl_device, latch_crtcs, update, flags);
+  g_list_free (latch_crtcs);
 
   if (meta_kms_feedback_did_pass (feedback) &&
       crtc_frame->deadline.armed)
@@ -1972,6 +1994,7 @@ meta_kms_impl_device_handle_update (MetaKmsImplDevice *impl_device,
   MetaKmsImpl *kms_impl = meta_kms_impl_device_get_impl (impl_device);
   MetaThreadImpl *thread_impl = META_THREAD_IMPL (kms_impl);
   g_autoptr (GError) error = NULL;
+  GList *latch_crtcs;
   MetaKmsCrtc *latch_crtc;
   CrtcFrame *crtc_frame;
   MetaKmsFeedback *feedback;
@@ -1981,13 +2004,20 @@ meta_kms_impl_device_handle_update (MetaKmsImplDevice *impl_device,
 
   meta_assert_in_kms_impl (meta_kms_impl_get_kms (priv->impl));
 
-  latch_crtc = meta_kms_update_get_latch_crtc (update);
-  if (!latch_crtc)
+  latch_crtcs = meta_kms_update_get_latch_crtcs (update);
+  if (!latch_crtcs)
     {
       g_set_error (&error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT,
                    "Only single-CRTC updates supported");
       goto err;
     }
+  if (g_list_length (latch_crtcs) > 1)
+    {
+      g_set_error (&error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT,
+                   "Need updates for tiled displays");
+      goto err;
+    }
+  latch_crtc = latch_crtcs->data;
 
   if (!priv->crtc_frames)
     {
@@ -2209,7 +2239,7 @@ meta_kms_impl_device_process_update (MetaKmsImplDevice *impl_device,
   if (flags & META_KMS_UPDATE_FLAG_TEST_ONLY)
     {
       return do_process (impl_device,
-                         meta_kms_update_get_latch_crtc (update),
+                         meta_kms_update_get_latch_crtcs (update),
                          update, flags);
     }
   else if (flags & META_KMS_UPDATE_FLAG_MODE_SET)
