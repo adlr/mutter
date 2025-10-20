@@ -64,7 +64,7 @@ static GParamSpec *obj_props[N_PROPS];
 typedef struct _CrtcDeadline
 {
   MetaKmsImplDevice *impl_device;
-  MetaKmsCrtc *crtc;
+  GList *crtcs;  // of type MetaKmsCrtc
   MetaKmsUpdate *pending_update;
   gboolean await_flush;
   gboolean pending_page_flip;
@@ -1333,9 +1333,10 @@ disarm_crtc_frame_deadline_timer (CrtcFrame *crtc_frame)
   if (!crtc_frame->deadline.source)
     return;
 
-  meta_topic (META_DEBUG_KMS, "Disarming deadline timer for crtc %u (%s)",
-              meta_kms_crtc_get_id (crtc_frame->crtc),
-              meta_kms_device_get_path (meta_kms_crtc_get_device (crtc_frame->crtc)));
+  meta_topic (META_DEBUG_KMS, "Disarming deadline timer for crtc %u (cnt: %d) (%s)",
+              meta_kms_crtc_get_id (crtc_frame->crtcs->data),
+              g_list_length (crtc_frame->crtcs),
+              meta_kms_device_get_path (meta_kms_crtc_get_device (crtc_frame->crtcs->data)));
 
   timerfd_settime (crtc_frame->deadline.timer_fd,
                    TFD_TIMER_ABSTIME, &its, NULL);
@@ -1357,9 +1358,10 @@ arm_crtc_frame_deadline_timer (CrtcFrame *crtc_frame,
   if (!crtc_frame->deadline.source)
     return;
 
-  meta_topic (META_DEBUG_KMS, "Arming deadline timer for crtc %u (%s): %ld",
-              meta_kms_crtc_get_id (crtc_frame->crtc),
-              meta_kms_device_get_path (meta_kms_crtc_get_device (crtc_frame->crtc)),
+  meta_topic (META_DEBUG_KMS, "Arming deadline timer for crtc %u (cnd: %d) (%s): %ld",
+              meta_kms_crtc_get_id (crtc_frame->crtcs->data),
+              g_list_length (crtc_frame->crtcs),
+              meta_kms_device_get_path (meta_kms_crtc_get_device (crtc_frame->crtcs->data)),
               next_deadline_us);
 
   tv_sec = us2s (next_deadline_us);
@@ -1387,10 +1389,11 @@ ensure_deadline_timer_armed (MetaKmsImplDevice *impl_device,
   if (crtc_frame->deadline.armed)
     return TRUE;
 
-  if (!meta_kms_crtc_get_current_state (crtc_frame->crtc)->is_drm_mode_valid)
+  // ADLRTODO: support multiple crtcs here:
+  if (!meta_kms_crtc_get_current_state (crtc_frame->crtcs->data)->is_drm_mode_valid)
     return FALSE;
 
-  if (!meta_kms_crtc_determine_deadline (crtc_frame->crtc,
+  if (!meta_kms_crtc_determine_deadline (crtc_frame->crtcs->data,
                                          &next_deadline_us,
                                          &next_presentation_us,
                                          &local_error))
@@ -1424,7 +1427,7 @@ ensure_deadline_timer_armed (MetaKmsImplDevice *impl_device,
 static void
 notify_crtc_frame_ready (CrtcFrame *crtc_frame)
 {
-  MetaKmsCrtc *crtc = crtc_frame->crtc;
+  GList *crtcs = crtc_frame->crtcs; // of type MetaKmsCrtc *
 
   crtc_frame->pending_page_flip = FALSE;
   crtc_frame->deadline.is_deadline_page_flip = FALSE;
@@ -1435,7 +1438,7 @@ notify_crtc_frame_ready (CrtcFrame *crtc_frame)
   if (crtc_frame->await_flush)
     return;
 
-  meta_kms_impl_device_schedule_process (crtc_frame->impl_device, crtc);
+  meta_kms_impl_device_schedule_process (crtc_frame->impl_device, crtcs);
 }
 
 static void
@@ -1617,11 +1620,6 @@ do_process (MetaKmsImplDevice *impl_device,
                                                       crtc_frame, NULL);
             }
 
-          meta_kms_update_add_page_flip_listener (update,
-                                                  crtc_frame->crtc,
-                                                  &crtc_page_flip_listener_vtable,
-                                                  thread_context,
-                                                  crtc_frame, NULL);
           crtc_frame->pending_page_flip = TRUE;
         }
     }
@@ -1655,7 +1653,8 @@ crtc_frame_deadline_dispatch (MetaThreadImpl  *thread_impl,
                               GError         **error)
 {
   CrtcFrame *crtc_frame = user_data;
-  MetaKmsCrtc *crtc = crtc_frame->crtc;
+  // ADLRTOD: P1 must figure out deadline evastion, etc in this function
+  MetaKmsCrtc *crtc = crtc_frame->crtcs->data;  // <- change to support multiple crtcs
   MetaKmsDevice *device = meta_kms_crtc_get_device (crtc);
   MetaKmsImplDevice *impl_device = meta_kms_device_get_impl_device (device);
   g_autoptr (MetaKmsFeedback) feedback = NULL;
@@ -1683,12 +1682,10 @@ crtc_frame_deadline_dispatch (MetaThreadImpl  *thread_impl,
     }
 
   // ADLRTODO: support more crtcs coming into crtc_frame_deadline_dispatch
-  GList* latch_crtcs = g_list_prepend (NULL, crtc_frame->crtc);
   feedback = do_process (impl_device,
-                         latch_crtcs,
+                         crtc_frame->crtcs,
                          g_steal_pointer (&crtc_frame->pending_update),
                          META_KMS_UPDATE_FLAG_NONE);
-  g_list_free (latch_crtcs);
 
   update_done_time_us = g_get_monotonic_time ();
   /* Calculate how long after the planned start of deadline dispatch it finished */
@@ -1744,6 +1741,7 @@ static void
 crtc_frame_free (CrtcFrame *crtc_frame)
 {
   g_clear_fd (&crtc_frame->deadline.timer_fd, NULL);
+  g_clear_pointer (&crtc_frame->crtcs, g_list_free);
   g_clear_pointer (&crtc_frame->deadline.source, g_source_destroy);
   g_clear_pointer (&crtc_frame->pending_update, meta_kms_update_free);
   g_clear_pointer (&crtc_frame->submitted_update.kms_update, meta_kms_update_free);
@@ -1820,7 +1818,7 @@ ensure_crtc_frame (MetaKmsImplDevice *impl_device,
 
       crtc_frame = g_new0 (CrtcFrame, 1);
       crtc_frame->impl_device = impl_device;
-      crtc_frame->crtc = latch_crtcs->data;
+      crtc_frame->crtcs = g_list_copy (latch_crtcs);
       crtc_frame->deadline.timer_fd = -1;
       crtc_frame->await_flush = !crtc_state->is_active;
       GList *l;
@@ -1889,7 +1887,7 @@ queue_update (MetaKmsImplDevice *impl_device,
 static void
 meta_kms_impl_device_do_process_update (MetaKmsImplDevice *impl_device,
                                         CrtcFrame         *crtc_frame,
-                                        MetaKmsCrtc       *latch_crtc,
+                                        GList             *latch_crtcs,  // of type MetaKmsCrtc *
                                         MetaKmsUpdate     *update,
                                         MetaKmsUpdateFlag  flags)
 {
@@ -1909,12 +1907,10 @@ meta_kms_impl_device_do_process_update (MetaKmsImplDevice *impl_device,
       disarm_crtc_frame_deadline_timer (crtc_frame);
     }
 
-  meta_kms_device_handle_flush (priv->device, latch_crtc);
+  meta_kms_device_handle_flush (priv->device, latch_crtcs);
 
   // ADLRTODO: support more crtcs coming into meta_kms_impl_device_do_process_update
-  GList *latch_crtcs = g_list_prepend (NULL, latch_crtc);
   feedback = do_process (impl_device, latch_crtcs, update, flags);
-  g_list_free (latch_crtcs);
 
   if (meta_kms_feedback_did_pass (feedback) &&
       crtc_frame->deadline.armed)
@@ -1929,7 +1925,7 @@ meta_kms_impl_device_update_ready (MetaThreadImpl  *impl,
                                    GError         **error)
 {
   CrtcFrame *crtc_frame = user_data;
-  MetaKmsDevice *device = meta_kms_crtc_get_device (crtc_frame->crtc);
+  MetaKmsDevice *device = meta_kms_crtc_get_device (crtc_frame->crtcs->data);
   MetaKmsImplDevice *impl_device = meta_kms_device_get_impl_device (device);
   MetaKmsImplDevicePrivate *priv =
     meta_kms_impl_device_get_instance_private (impl_device);
@@ -1946,10 +1942,11 @@ meta_kms_impl_device_update_ready (MetaThreadImpl  *impl,
 
   latch_crtc = g_steal_pointer (&crtc_frame->submitted_update.latch_crtc);
 
+  // Assuming we can just check the first crtc in a tiled group for vrr enabled
   want_deadline_timer =
     !crtc_frame->await_flush &&
     is_using_deadline_timer (impl_device) &&
-    !meta_kms_crtc_get_current_state (crtc_frame->crtc)->vrr.enabled;
+    !meta_kms_crtc_get_current_state (crtc_frame->crtcs->data)->vrr.enabled;
 
   if ((want_deadline_timer || crtc_frame->pending_page_flip) &&
       !meta_kms_update_get_mode_sets (update))
@@ -1971,9 +1968,12 @@ meta_kms_impl_device_update_ready (MetaThreadImpl  *impl,
         return GINT_TO_POINTER (TRUE);
     }
 
-  meta_kms_impl_device_do_process_update (impl_device, crtc_frame, latch_crtc,
+  // ADLRTOD: support multiple latch_crtcs here
+  GList *latch_crtcs = g_list_prepend (NULL, latch_crtc);
+  meta_kms_impl_device_do_process_update (impl_device, crtc_frame, latch_crtcs,
                                           update,
                                           crtc_frame->submitted_update.flags);
+  g_list_free (latch_crtcs);
 
   return GINT_TO_POINTER (TRUE);
 }
@@ -2122,14 +2122,13 @@ meta_kms_impl_device_await_flush (MetaKmsImplDevice *impl_device,
 
 void
 meta_kms_impl_device_schedule_process (MetaKmsImplDevice *impl_device,
-                                       MetaKmsCrtc       *crtc)
+                                       GList             *crtcs)  // of type MetaKmsCrtc *
 {
   CrtcFrame *crtc_frame;
 
   // ADLRTODO: handle multiple crtcs here
-  GList *latch_crtcs = g_list_prepend (NULL, crtc);
-  crtc_frame = ensure_crtc_frame (impl_device, latch_crtcs);
-  g_list_free (latch_crtcs);
+  g_warn_if_fail (g_list_length (crtcs) == 1);
+  crtc_frame = ensure_crtc_frame (impl_device, crtcs);
 
   if (crtc_frame->await_flush)
     return;
@@ -2145,7 +2144,7 @@ meta_kms_impl_device_schedule_process (MetaKmsImplDevice *impl_device,
       if (crtc_frame->pending_update)
         {
           meta_kms_impl_device_do_process_update (impl_device, crtc_frame,
-                                                  crtc_frame->crtc,
+                                                  crtc_frame->crtcs,
                                                   crtc_frame->pending_update,
                                                   META_KMS_UPDATE_FLAG_NONE);
         }
@@ -2160,7 +2159,7 @@ meta_kms_impl_device_schedule_process (MetaKmsImplDevice *impl_device,
                       crtc_frame->pending_update, priv->deadline_timer_state);
     }
 
-  meta_kms_device_set_needs_flush (meta_kms_crtc_get_device (crtc), crtc);
+  meta_kms_device_set_needs_flush (meta_kms_crtc_get_device (crtcs->data), crtcs->data);
 }
 
 static void
