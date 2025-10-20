@@ -208,7 +208,7 @@ void meta_kms_impl_device_await_flush (MetaKmsImplDevice *impl_device,
 
 META_EXPORT_TEST
 void meta_kms_impl_device_schedule_process (MetaKmsImplDevice *impl_device,
-                                            MetaKmsCrtc       *crtc);
+                                            GList             *crtcs);  // of type MetaKmsCrtc *
 
 void meta_kms_impl_device_handle_page_flip_callback (MetaKmsImplDevice   *impl_device,
                                                      MetaKmsPageFlipData *page_flip_data);
