@@ -102,7 +102,7 @@ META_EXPORT_TEST
 void meta_kms_update_free (MetaKmsUpdate *update);
 
 void meta_kms_update_set_flushing (MetaKmsUpdate *update,
-                                   MetaKmsCrtc   *crtc);
+                                   GList         *crtcs);  // of type MetaKmsCrtc *
 
 META_EXPORT_TEST
 MetaKmsDevice * meta_kms_update_get_device (MetaKmsUpdate *update);
