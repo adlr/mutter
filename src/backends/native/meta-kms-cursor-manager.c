@@ -703,8 +703,11 @@ position_changed_in_impl (MetaThreadImpl  *thread_impl,
 
           crtc_state_impl->cursor_invalidated = TRUE;
 
+          // ADLRTODO: adjust to support multiple crtcs if needed
+          GList *crtcs = g_list_prepend (NULL, crtc_state_impl->crtc);
           meta_kms_impl_device_schedule_process (impl_device,
-                                                 crtc_state_impl->crtc);
+                                                 crtcs);
+          g_list_free (crtcs);
         }
     }
 
@@ -760,8 +763,11 @@ update_sprite_in_impl (MetaThreadImpl  *thread_impl,
   crtc_state_impl->hotspot = data->hotspot;
   crtc_state_impl->cursor_invalidated = TRUE;
 
+  // ADLRTODO: check if this needs updating to handle multiple crtcs
+  GList *crtcs = g_list_prepend (NULL, crtc_state_impl->crtc);
   meta_kms_impl_device_schedule_process (impl_device,
-                                         crtc_state_impl->crtc);
+                                         crtcs);
+  g_list_free (crtcs);
 
   if (old_buffer)
     {

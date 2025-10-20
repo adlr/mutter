@@ -81,7 +81,7 @@ void meta_kms_device_await_flush (MetaKmsDevice *device,
                                   MetaKmsCrtc   *crtc);
 
 gboolean meta_kms_device_handle_flush (MetaKmsDevice *device,
-                                       MetaKmsCrtc   *crtc);
+                                       GList         *crtcs);  // of type MetaKmsCrtc *
 
 META_EXPORT_TEST
 void meta_kms_device_disable (MetaKmsDevice *device);

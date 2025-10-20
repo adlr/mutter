@@ -2094,14 +2094,22 @@ meta_onscreen_native_finish_frame (CoglOnscreen *onscreen,
 {
   // ADLRTODO: support multiple crtcs here
   MetaOnscreenNative *onscreen_native = META_ONSCREEN_NATIVE (onscreen);
-  MetaCrtc *crtc = onscreen_native->crtcs->data;
-  MetaKmsCrtc *kms_crtc = meta_crtc_kms_get_kms_crtc (META_CRTC_KMS (crtc));
-  MetaKmsDevice *kms_device = meta_kms_crtc_get_device (kms_crtc);
+  //MetaCrtc *crtc = onscreen_native->crtcs->data;
+  g_autoptr (GList) kms_crtcs = NULL;
+  GList *l;
+  for (l = onscreen_native->crtcs; l; l = l->next)
+    {
+      MetaCrtc *crtc = l->data;
+      kms_crtcs = g_list_prepend (kms_crtcs, meta_crtc_kms_get_kms_crtc (META_CRTC_KMS (crtc)));
+    }
+  kms_crtcs = g_list_reverse (kms_crtcs);
+  //MetaKmsCrtc *kms_crtc = meta_crtc_kms_get_kms_crtc (META_CRTC_KMS (crtc));
+  MetaKmsDevice *kms_device = meta_kms_crtc_get_device (kms_crtcs->data);
   MetaFrameNative *frame_native = meta_frame_native_from_frame (frame);
   MetaKmsUpdate *kms_update;
 
   onscreen_native->needs_flush |= meta_kms_device_handle_flush (kms_device,
-                                                                kms_crtc);
+                                                                kms_crtcs);
 
   if (!meta_frame_native_has_kms_update (frame_native))
     {
@@ -2150,7 +2158,7 @@ meta_onscreen_native_finish_frame (CoglOnscreen *onscreen,
 
   if (onscreen_native->needs_flush)
     {
-      meta_kms_update_set_flushing (kms_update, kms_crtc);
+      meta_kms_update_set_flushing (kms_update, kms_crtcs);
       onscreen_native->needs_flush = FALSE;
     }
 
@@ -2165,10 +2173,16 @@ post_nonprimary_plane_update (MetaOnscreenNative *onscreen_native,
                               ClutterFrame       *frame,
                               MetaKmsUpdate      *kms_update)
 {
-  // ADLRTODO: support multiple crtcs
-  MetaCrtc *crtc = onscreen_native->crtcs->data;
-  MetaKmsCrtc *kms_crtc = meta_crtc_kms_get_kms_crtc (META_CRTC_KMS (crtc));
-  MetaKmsDevice *kms_device = meta_kms_crtc_get_device (kms_crtc);
+  g_autoptr (GList) kms_crtcs = NULL;
+  GList *l;
+  g_warn_if_fail (g_list_length (onscreen_native->crtcs) > 0);
+  for (l = onscreen_native->crtcs; l; l = l->next)
+    {
+      MetaCrtc *crtc = l->data;
+      kms_crtcs = g_list_prepend (kms_crtcs, meta_crtc_kms_get_kms_crtc (META_CRTC_KMS (crtc)));
+    }
+  kms_crtcs = g_list_reverse (kms_crtcs);
+  MetaKmsDevice *kms_device = meta_kms_crtc_get_device (kms_crtcs->data);
   g_autoptr (MetaKmsFeedback) kms_feedback = NULL;
 
   meta_kms_update_add_result_listener (kms_update,
@@ -2177,20 +2191,23 @@ post_nonprimary_plane_update (MetaOnscreenNative *onscreen_native,
                                        onscreen_native,
                                        NULL);
 
+  // ADLRTODO: support multiple crtcs:
   meta_kms_update_add_page_flip_listener (kms_update,
-                                          kms_crtc,
+                                          kms_crtcs->data,
                                           &page_flip_listener_vtable,
                                           NULL,
                                           g_object_ref (onscreen_native->view),
                                           g_object_unref);
-  add_onscreen_frame_info (crtc, frame);
+  // This call is okay to just take one CRTC:
+  add_onscreen_frame_info (onscreen_native->crtcs->data, frame);
 
   meta_topic (META_DEBUG_KMS,
-              "Posting non-primary plane update for CRTC %u (%s)",
-              meta_kms_crtc_get_id (kms_crtc),
+              "Posting non-primary plane update for CRTC %u (count: %d) (%s)",
+              meta_kms_crtc_get_id (kms_crtcs->data),
+              g_list_length (kms_crtcs),
               meta_kms_device_get_path (kms_device));
 
-  meta_kms_update_set_flushing (kms_update, kms_crtc);
+  meta_kms_update_set_flushing (kms_update, kms_crtcs);
   meta_kms_device_post_update (kms_device, kms_update,
                                META_KMS_UPDATE_FLAG_NONE);
 }

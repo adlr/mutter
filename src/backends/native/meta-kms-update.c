@@ -1224,9 +1224,14 @@ meta_kms_update_realize (MetaKmsUpdate     *update,
 
 void
 meta_kms_update_set_flushing (MetaKmsUpdate *update,
-                              MetaKmsCrtc   *crtc)
+                              GList         *crtcs)  // of type MetaKmsCrtc *
 {
-  update_latch_crtc (update, crtc);
+  GList *l;
+  for (l = crtcs; l; l = l->next)
+    {
+      MetaKmsCrtc *crtc = l->data;
+      update_latch_crtc (update, crtc);
+    }
 }
 
 GList *
