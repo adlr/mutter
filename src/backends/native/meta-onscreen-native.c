@@ -573,6 +573,61 @@ assign_primary_plane (MetaCrtcKms            *crtc_kms,
   return plane_assignment;
 }
 
+// Gets the offset and size of `crtc` if tiled
+static void
+get_tile_offset_size (MetaCrtc *crtc,
+                      GList *all,  // of type MetaCrtc *
+                      int *out_x,
+                      int *out_y,
+                      int *out_width,
+                      int *out_height)
+{
+  const GList *outputs = meta_crtc_get_outputs (crtc);
+  g_warn_if_fail (outputs != NULL);
+  MetaOutput *output = outputs->data;
+  const MetaOutputInfo *output_info = meta_output_get_info (output);
+  g_warning ("Tile info: lv %d, lh %d, width %d, height %d",
+            output_info->tile_info.loc_v_tile,
+            output_info->tile_info.loc_h_tile,
+            output_info->tile_info.tile_w,
+            output_info->tile_info.tile_h);
+  int x = 0;
+  int y = 0;
+  int width = output_info->tile_info.tile_w;
+  int height = output_info->tile_info.tile_h;
+  GList *t;
+  for (t = all; t; t = t->next)
+    {
+      MetaCrtc *other_crtc = t->data;
+      if (other_crtc == crtc)
+        continue;  // Don't count self
+      const GList *other_outputs = meta_crtc_get_outputs (crtc);
+      if (other_outputs == NULL)
+        continue;  // Not sure this would ever happen, just being careful
+      MetaOutput *other_output = other_outputs->data;
+      const MetaOutputInfo *other_output_info = meta_output_get_info (other_output);
+      g_warning ("Other tile info: lv %d, lh %d, width %d, height %d",
+                other_output_info->tile_info.loc_v_tile,
+                other_output_info->tile_info.loc_h_tile,
+                other_output_info->tile_info.tile_w,
+                other_output_info->tile_info.tile_h);
+      if (output_info->tile_info.loc_h_tile == other_output_info->tile_info.loc_h_tile &&
+          output_info->tile_info.loc_v_tile > other_output_info->tile_info.loc_v_tile)
+        {
+          x += other_output_info->tile_info.tile_w;
+        }
+      if (output_info->tile_info.loc_v_tile == other_output_info->tile_info.loc_v_tile &&
+          output_info->tile_info.loc_h_tile > other_output_info->tile_info.loc_h_tile)
+        {
+          y += other_output_info->tile_info.tile_h;
+        }
+    }
+  if (out_x) *out_x = x;
+  if (out_y) *out_y = y;
+  if (out_width) *out_width = width;
+  if (out_height) *out_height = height;
+}
+
 static gboolean
 meta_onscreen_native_flip_crtc (CoglOnscreen           *onscreen,
                                 ClutterFrame           *frame,
@@ -641,16 +696,21 @@ meta_onscreen_native_flip_crtc (CoglOnscreen           *onscreen,
               .width = meta_drm_buffer_get_width (buffer),
               .height = meta_drm_buffer_get_height (buffer)
             };
-            const GList *outputs = meta_crtc_get_outputs (crtc);
-            g_warning ("Number of outputs for CRTC: %d", g_list_length ((GList*) outputs));
-            if (outputs != NULL) {
-              MetaOutput *output = outputs->data;
-              const MetaOutputInfo *output_info = meta_output_get_info (output);
-              g_warning ("Tile info: lv %d, lh %d, width %d, height %d",
-                         output_info->tile_info.loc_v_tile,
-                         output_info->tile_info.loc_h_tile,
-                         output_info->tile_info.tile_w,
-                         output_info->tile_info.tile_h);
+            // Tile offset and size:
+            int x = 0;
+            int y = 0;
+            int width = 0;
+            int height = 0;
+            get_tile_offset_size (crtc, crtcs, &x, &y, &width, &height);
+            if (width > 0 && height > 0 && crtcs->next) {  // we have at least 2 crtcs
+              g_warning ("We have a tile");
+              // Have a tile
+              src_rect.origin.x = x;
+              src_rect.origin.y = y;
+              src_rect.size.width = width;
+              src_rect.size.height = height;
+              dst_rect.width = width;
+              dst_rect.height = height;
             }
           }
 
