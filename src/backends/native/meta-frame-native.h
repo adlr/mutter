@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include "backends/meta-crtc.h"
 #include "backends/native/meta-backend-native-types.h"
 #include "backends/native/meta-kms-types.h"
 #include "clutter/clutter.h"
@@ -60,4 +61,15 @@ meta_frame_native_set_sync_fd (MetaFrameNative *frame_native,
                                int              sync_fd);
 
 int
-meta_frame_native_steal_sync_fd (MetaFrameNative *frame_native);
+meta_frame_native_steal_sync_fd (MetaFrameNative * frame_native);
+
+void
+meta_frame_native_add_posted_crtc (MetaFrameNative *frame_native,
+                                   MetaCrtc        *crtc);
+
+void
+meta_frame_native_remove_posted_crtc (MetaFrameNative *frame_native,
+                                      MetaCrtc        *crtc);
+
+gboolean
+meta_frame_native_has_posted_crtcs (MetaFrameNative *frame_native);

@@ -260,6 +260,11 @@ notify_view_crtc_presented (MetaRendererView *view,
   crtc = META_CRTC (meta_crtc_kms_from_kms_crtc (kms_crtc));
   maybe_update_frame_info (crtc, frame_info, time_us, flags, sequence);
 
+  MetaFrameNative *frame_native = meta_frame_native_from_frame (onscreen_native->posted_frame);
+  meta_frame_native_remove_posted_crtc (frame_native, crtc);
+  if (meta_frame_native_has_posted_crtcs (frame_native))
+    return;
+
   meta_onscreen_native_notify_frame_complete (onscreen);
   meta_onscreen_native_promote_posted_frame (onscreen);
   maybe_post_next_frame (onscreen);
@@ -584,7 +589,7 @@ meta_onscreen_native_flip_crtc (CoglOnscreen           *onscreen,
 {
   MetaOnscreenNative *onscreen_native = META_ONSCREEN_NATIVE (onscreen);
   MetaRendererNative *renderer_native = onscreen_native->renderer_native;
-  MetaFrameNative *frame_native;
+  MetaFrameNative *frame_native = NULL;
   MetaGpuKms *render_gpu = onscreen_native->render_gpu;
   MetaCrtcKms *crtc_kms = META_CRTC_KMS (crtc);
   MetaKmsCrtc *kms_crtc = meta_crtc_kms_get_kms_crtc (crtc_kms);
@@ -675,6 +680,8 @@ meta_onscreen_native_flip_crtc (CoglOnscreen           *onscreen,
                                           NULL,
                                           g_object_ref (view),
                                           g_object_unref);
+  if (frame_native)
+    meta_frame_native_add_posted_crtc (frame_native, crtc);
   return TRUE;
 }
 
