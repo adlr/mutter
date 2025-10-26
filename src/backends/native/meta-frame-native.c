@@ -35,6 +35,10 @@ struct _MetaFrameNative
   MetaKmsUpdate *kms_update;
 
   MtkRegion *damage;
+  // List of crtcs that we have requested page flips from.
+  // Will be > 1 in case of tiled display.
+  // When all are complete, the full frame was flipped including all tiles.
+  GList *posted_crtcs;  // of type MetaCrtc *
   int sync_fd;
 };
 

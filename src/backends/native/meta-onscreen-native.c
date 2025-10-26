@@ -1766,6 +1766,9 @@ maybe_post_next_frame (CoglOnscreen *onscreen)
                                        NULL);
 
   ensure_crtc_modes (onscreen, kms_update);
+  // ADLRTODO: in `meta_onscreen_native_flip_crtc`, note which crtcs are flipping inside
+  // `frame` (well, `frame_native`), and then make sure we get those all in
+  // `notify_view_crtc_presented` (from `posted_frame`)
   if (!meta_onscreen_native_flip_crtc (onscreen,
                                        frame,
                                        onscreen_native->view,
