@@ -260,6 +260,18 @@ notify_view_crtc_presented (MetaRendererView *view,
   crtc = META_CRTC (meta_crtc_kms_from_kms_crtc (kms_crtc));
   maybe_update_frame_info (crtc, frame_info, time_us, flags, sequence);
 
+  MetaFrameNative *frame_native = meta_frame_native_from_frame (onscreen_native->posted_frame);
+  meta_frame_native_remove_posted_crtc (frame_native, crtc);
+  if (meta_frame_native_has_posted_crtcs (frame_native))
+    {
+      g_warning ("Waiting for more crtcs to flip");
+      return;
+    }
+  else
+    {
+      g_warning ("All crtcs have flipped");
+    }
+
   meta_onscreen_native_notify_frame_complete (onscreen);
   meta_onscreen_native_promote_posted_frame (onscreen);
   maybe_post_next_frame (onscreen);
@@ -736,7 +748,6 @@ meta_onscreen_native_flip_crtc (CoglOnscreen           *onscreen,
   #endif
       }
    }
-  // ADLRTODO: change this to take multiple crtcs:
   for (l = crtcs; l; l = l->next)
     {
       MetaCrtc *crtc = l->data;
@@ -749,6 +760,7 @@ meta_onscreen_native_flip_crtc (CoglOnscreen           *onscreen,
                                               NULL,
                                               g_object_ref (view),
                                               g_object_unref);
+      meta_frame_native_add_posted_crtc (frame_native, crtc);
     }
   return TRUE;
 }
