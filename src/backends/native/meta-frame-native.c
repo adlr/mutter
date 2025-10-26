@@ -35,6 +35,10 @@ struct _MetaFrameNative
   MetaKmsUpdate *kms_update;
 
   MtkRegion *damage;
+  // List of crtcs that we have requested page flips from.
+  // Will be > 1 in case of tiled display.
+  // When all are complete, the full frame was flipped including all tiles.
+  GList *posted_crtcs;  // of type MetaCrtc *
   int sync_fd;
 };
 
@@ -147,4 +151,30 @@ int
 meta_frame_native_steal_sync_fd (MetaFrameNative *frame_native)
 {
   return g_steal_fd (&frame_native->sync_fd);
+}
+
+void
+meta_frame_native_add_posted_crtc (MetaFrameNative *frame_native, MetaCrtc *crtc)
+{
+  if (g_list_find (frame_native->posted_crtcs, crtc)) {
+    g_warning ("FrameNative already has posted crtc!");
+    return;
+  }
+  frame_native->posted_crtcs = g_list_prepend (frame_native->posted_crtcs, crtc);
+}
+
+void
+meta_frame_native_remove_posted_crtc (MetaFrameNative *frame_native, MetaCrtc *crtc)
+{
+  if (!g_list_find (frame_native->posted_crtcs, crtc)) {
+    g_warning ("FrameNative can't remove non-posted crtc!");
+    return;
+  }
+  frame_native->posted_crtcs = g_list_remove (frame_native->posted_crtcs, crtc);
+}
+
+gboolean
+meta_frame_native_has_posted_crtcs (MetaFrameNative *frame_native)
+{
+  return !!frame_native->posted_crtcs;
 }
