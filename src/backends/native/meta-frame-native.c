@@ -35,6 +35,10 @@ struct _MetaFrameNative
   MetaKmsUpdate *kms_update;
 
   MtkRegion *damage;
+  /* Array of crtcs that we have requested page flips from.
+   * Will be > 1 in case of tiled display.
+   * When all are complete, the full frame was flipped including all tiles. */
+  GPtrArray *posted_crtcs;  /* of type MetaCrtc * */
   int sync_fd;
 };
 
@@ -43,6 +47,7 @@ meta_frame_native_release (ClutterFrame *frame)
 {
   MetaFrameNative *frame_native = meta_frame_native_from_frame (frame);
 
+  g_clear_pointer (&frame_native->posted_crtcs, g_ptr_array_unref);
   g_clear_fd (&frame_native->sync_fd, NULL);
   g_clear_pointer (&frame_native->damage, mtk_region_unref);
   g_clear_object (&frame_native->buffer);
@@ -57,6 +62,7 @@ meta_frame_native_new (void)
   MetaFrameNative *frame_native =
     clutter_frame_new (MetaFrameNative, meta_frame_native_release);
 
+  frame_native->posted_crtcs = g_ptr_array_new ();
   frame_native->sync_fd = -1;
 
   return frame_native;
@@ -147,4 +153,31 @@ int
 meta_frame_native_steal_sync_fd (MetaFrameNative *frame_native)
 {
   return g_steal_fd (&frame_native->sync_fd);
+}
+
+void
+meta_frame_native_add_posted_crtc (MetaFrameNative *frame_native, MetaCrtc *crtc)
+{
+  if (g_ptr_array_find (frame_native->posted_crtcs, crtc, NULL)) {
+    g_warning ("FrameNative already has posted crtc!");
+    return;
+  }
+  g_ptr_array_add (frame_native->posted_crtcs, crtc);
+}
+
+void
+meta_frame_native_remove_posted_crtc (MetaFrameNative *frame_native, MetaCrtc *crtc)
+{
+  guint index = 0;
+  if (!g_ptr_array_find (frame_native->posted_crtcs, crtc, &index)) {
+    g_warning ("FrameNative can't remove non-posted crtc!");
+    return;
+  }
+  g_ptr_array_remove_index_fast (frame_native->posted_crtcs, index);
+}
+
+gboolean
+meta_frame_native_has_posted_crtcs (MetaFrameNative *frame_native)
+{
+  return frame_native->posted_crtcs->len > 0;
 }
