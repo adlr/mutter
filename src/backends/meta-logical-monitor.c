@@ -246,11 +246,11 @@ typedef struct _ForeachCrtcData
 } ForeachCrtcData;
 
 static gboolean
-foreach_crtc (MetaMonitor         *monitor,
-              MetaMonitorMode     *mode,
-              GList               *monitor_crtc_modes,  // of MetaMonitorCrtcMode *
-              gpointer             user_data,
-              GError             **error)
+foreach_crtc_multi (MetaMonitor         *monitor,
+                    MetaMonitorMode     *mode,
+                    GList               *monitor_crtc_modes,  // of MetaMonitorCrtcMode *
+                    gpointer             user_data,
+                    GError             **error)
 {
   ForeachCrtcData *data = user_data;
 
@@ -264,6 +264,29 @@ foreach_crtc (MetaMonitor         *monitor,
       outputs = g_list_append (outputs, output);
       crtcs = g_list_append (crtcs, meta_output_get_assigned_crtc (output));
     }
+  data->func (data->logical_monitor,
+              monitor,
+              outputs,
+              crtcs,
+              data->user_data);
+
+  return TRUE;
+}
+
+static gboolean
+foreach_crtc (MetaMonitor         *monitor,
+              MetaMonitorMode     *mode,
+              MetaMonitorCrtcMode *monitor_crtc_mode,
+              gpointer             user_data,
+              GError             **error)
+{
+  ForeachCrtcData *data = user_data;
+
+  g_autoptr (GList) outputs = NULL;  // of MetaOutput *
+  g_autoptr (GList) crtcs = NULL;  // of MetaCrtc *
+  MetaOutput *output = monitor_crtc_mode->output;
+  outputs = g_list_append (outputs, output);
+  crtcs = g_list_append (crtcs, meta_output_get_assigned_crtc (output));
   data->func (data->logical_monitor,
               monitor,
               outputs,
@@ -291,7 +314,11 @@ meta_logical_monitor_foreach_crtc (MetaLogicalMonitor        *logical_monitor,
       };
 
       mode = meta_monitor_get_current_mode (monitor);
-      meta_monitor_mode_foreach_crtc_multi (monitor, mode, foreach_crtc, &data, NULL);
+      gboolean new_tiled_mode = false;
+      if (new_tiled_mode)
+        meta_monitor_mode_foreach_crtc_multi (monitor, mode, foreach_crtc_multi, &data, NULL);
+      else
+        meta_monitor_mode_foreach_crtc (monitor, mode, foreach_crtc, &data, NULL);
     }
 }
 
