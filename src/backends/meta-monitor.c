@@ -2216,6 +2216,33 @@ meta_monitor_mode_foreach_crtc (MetaMonitor          *monitor,
 }
 
 gboolean
+meta_monitor_mode_foreach_crtc_multi (MetaMonitor          *monitor,
+                                      MetaMonitorMode      *mode,
+                                      MetaMonitorModeMultiFunc func,
+                                      gpointer              user_data,
+                                      GError              **error)
+{
+  MetaMonitorPrivate *monitor_priv =
+    meta_monitor_get_instance_private (monitor);
+  GList *l;
+  g_autoptr (GList) monitor_crtc_modes = NULL;
+  int i;
+
+  for (l = monitor_priv->outputs, i = 0; l; l = l->next, i++)
+    {
+      MetaMonitorCrtcMode *monitor_crtc_mode = &mode->crtc_modes[i];
+
+      if (!monitor_crtc_mode->crtc_mode)
+        continue;
+
+      monitor_crtc_modes = g_list_append (monitor_crtc_modes, monitor_crtc_mode);
+    }
+  if (!func (monitor, mode, monitor_crtc_modes, user_data, error))
+    return FALSE;
+
+  return TRUE;
+}
+gboolean
 meta_monitor_mode_foreach_output (MetaMonitor          *monitor,
                                   MetaMonitorMode      *mode,
                                   MetaMonitorModeFunc   func,
