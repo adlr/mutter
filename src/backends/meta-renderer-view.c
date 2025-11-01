@@ -163,7 +163,7 @@ meta_renderer_view_set_property (GObject      *object,
       break;
     case PROP_CRTCS:
       g_warn_if_fail (priv->crtcs == NULL);
-      priv->crtcs = g_value_get_pointer (value);
+      priv->crtcs = g_list_copy (g_value_get_pointer (value));
       break;
     case PROP_COLOR_DEVICE:
       g_set_object (&priv->color_device, g_value_get_object (value));
