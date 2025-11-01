@@ -3134,8 +3134,8 @@ meta_onscreen_native_new (MetaRendererNative *renderer_native,
   onscreen_native->renderer_native = renderer_native;
   onscreen_native->render_gpu = render_gpu;
 
-  onscreen_native->outputs = g_list_copy (outputs);
-  onscreen_native->crtcs = g_list_copy (crtcs);
+  onscreen_native->outputs = outputs;
+  onscreen_native->crtcs = crtcs;
 
   // Set signal handles on first crtc only. Hope that's enough?
   if (meta_crtc_get_gamma_lut_size (crtcs->data) > 0)

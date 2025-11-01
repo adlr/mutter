@@ -65,8 +65,8 @@ static MetaRendererView *
 meta_renderer_x11_nested_create_view (MetaRenderer        *renderer,
                                       MetaLogicalMonitor  *logical_monitor,
                                       MetaMonitor         *monitor,
-                                      GList               *outputs,  // of type MetaOutput *
-                                      GList               *crtcs,  // of type MetaCrtc *
+                                      MetaOutput          *output,
+                                      MetaCrtc            *crtc,
                                       GError             **error)
 {
   MetaBackend *backend = meta_renderer_get_backend (renderer);
@@ -88,10 +88,7 @@ meta_renderer_x11_nested_create_view (MetaRenderer        *renderer,
   else
     view_scale = 1.0;
 
-  // ADLRTODO: check if we need to handle multiple crtcs here
-  g_warn_if_fail (g_list_length (crtcs) == 1);
-  g_warn_if_fail (g_list_length (outputs) == 1);
-  crtc_config = meta_crtc_get_config (crtcs->data);
+  crtc_config = meta_crtc_get_config (crtc);
   width = (int) roundf (crtc_config->layout.size.width * view_scale);
   height = (int) roundf (crtc_config->layout.size.height * view_scale);
 
@@ -104,18 +101,18 @@ meta_renderer_x11_nested_create_view (MetaRenderer        *renderer,
   mode_info = meta_crtc_mode_get_info (crtc_config->mode);
 
   view = g_object_new (META_TYPE_RENDERER_VIEW,
-                       "name", meta_output_get_name (outputs->data),
+                       "name", meta_output_get_name (output),
                        "backend", backend,
                        "color-device", color_device,
                        "stage", meta_backend_get_stage (backend),
                        "layout", &view_layout,
-                       "crtcs", crtcs,
+                       "crtcs", g_list_prepend(NULL, crtc),
                        "refresh-rate", mode_info->refresh_rate,
                        "framebuffer", COGL_FRAMEBUFFER (fake_onscreen),
                        "transform", MTK_MONITOR_TRANSFORM_NORMAL,
                        "scale", view_scale,
                        NULL);
-  g_object_set_data (G_OBJECT (view), "crtcs", crtcs);
+  g_object_set_data (G_OBJECT (view), "crtcs", g_list_prepend(NULL, crtc));
 
   return view;
 }

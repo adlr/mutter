@@ -1417,34 +1417,12 @@ should_force_shadow_fb (MetaRendererNative *renderer_native,
   return meta_kms_device_prefers_shadow_buffer (kms_device);
 }
 
-static void
-get_tiled_display_size (GList *outputs, GList *crtcs, int *out_width, int *out_height)
-{
-  // ADLRTODO: use outputs to get actual display geometry.
-  // As a hack, for now assuming they are all left-to-right
-  GList *l;
-  int width = 0;
-  int height = 0;
-  for (l = crtcs; l; l = l->next)
-    {
-      MetaCrtc *crtc = l->data;
-      const MetaCrtcConfig *crtc_config = meta_crtc_get_config (crtc);
-      const MetaCrtcModeInfo *crtc_mode_info = meta_crtc_mode_get_info (crtc_config->mode);
-      width += crtc_mode_info->width;
-      height = crtc_mode_info->height;
-    }
-  if (out_width)
-    *out_width = width;
-  if (out_height)
-    *out_height = height;
-}
-
 static MetaRendererView *
 meta_renderer_native_create_view (MetaRenderer        *renderer,
                                   MetaLogicalMonitor  *logical_monitor,
                                   MetaMonitor         *monitor,
-                                  GList               *outputs,  // of MetaOutput *
-                                  GList               *crtcs,  // of MetaCrtc *
+                                  MetaOutput          *output,
+                                  MetaCrtc            *crtc,
                                   GError             **error)
 {
   MetaRendererNative *renderer_native = META_RENDERER_NATIVE (renderer);
@@ -1470,17 +1448,14 @@ meta_renderer_native_create_view (MetaRenderer        *renderer,
   EGLSurface egl_surface;
   GError *local_error = NULL;
 
-  get_tiled_display_size (outputs, crtcs, &onscreen_width, &onscreen_height);
-  crtc_config = meta_crtc_get_config (crtcs->data);
+  crtc_config = meta_crtc_get_config (crtc);
   crtc_mode_info = meta_crtc_mode_get_info (crtc_config->mode);
-  g_warning ("Assuming this is close to zero: %f %f", crtc_config->layout.origin.x, crtc_config->layout.origin.y);
-  // onscreen_width = crtc_mode_info->width;
-  // onscreen_height = crtc_mode_info->height;
+  onscreen_width = crtc_mode_info->width;
+  onscreen_height = crtc_mode_info->height;
 
-  if (META_IS_CRTC_KMS (crtcs->data))
+  if (META_IS_CRTC_KMS (crtc))
     {
-      // Assume all crtcs share the same gpu
-      MetaGpuKms *gpu_kms = META_GPU_KMS (meta_crtc_get_gpu (crtcs->data));
+      MetaGpuKms *gpu_kms = META_GPU_KMS (meta_crtc_get_gpu (crtc));
       g_autoptr (MetaOnscreenNative) onscreen_native = NULL;
 
       if (!meta_renderer_native_ensure_gpu_data (renderer_native,
@@ -1497,6 +1472,10 @@ meta_renderer_native_create_view (MetaRenderer        *renderer,
         {
           MetaGpuKms *primary_gpu_kms = renderer_native->primary_gpu_kms;
 
+          // ADLRTODO: handle multiple outpus/crtcs in this function
+          // ownership passed to onscreen_native
+          GList *outputs = g_list_prepend (NULL, g_object_ref (output));
+          GList *crtcs = g_list_prepend (NULL, g_object_ref (crtc));
           onscreen_native = meta_onscreen_native_new (renderer_native,
                                                       primary_gpu_kms,
                                                       outputs,
@@ -1536,38 +1515,33 @@ meta_renderer_native_create_view (MetaRenderer        *renderer,
       framebuffer = COGL_FRAMEBUFFER (virtual_onscreen);
     }
 
-  // ADLRTODO: figure this out for tiled displays/multiple outputs/crtcs:
   view_transform = calculate_view_transform (monitor_manager,
                                              logical_monitor,
-                                             outputs->data,
-                                             crtcs->data);
+                                             output,
+                                             crtc);
 
   if (meta_backend_is_stage_views_scaled (backend))
     scale = meta_logical_monitor_get_scale (logical_monitor);
   else
     scale = 1.0;
 
-  // mtk_rectangle_from_graphene_rect (&crtc_config->layout,
-  //                                   MTK_ROUNDING_STRATEGY_ROUND,
-  //                                   &view_layout);
-  view_layout.x = 0;
-  view_layout.y = 0;
-  view_layout.width = onscreen_width;
-  view_layout.height = onscreen_height;
+  mtk_rectangle_from_graphene_rect (&crtc_config->layout,
+                                    MTK_ROUNDING_STRATEGY_ROUND,
+                                    &view_layout);
 
   view_native = g_object_new (META_TYPE_RENDERER_VIEW_NATIVE,
-                              "name", meta_output_get_name (outputs->data),
+                              "name", meta_output_get_name (output),
                               "backend", backend,
                               "color-device", color_device,
                               "stage", meta_backend_get_stage (backend),
                               "layout", &view_layout,
-                              "crtcs", crtcs,
+                              "crtcs", g_list_prepend(NULL, crtc),
                               "scale", scale,
                               "framebuffer", framebuffer,
                               "use-shadowfb", use_shadowfb,
                               "transform", view_transform,
-                              "refresh-rate", crtc_mode_info->refresh_rate,  // Assume same for all
-                              "vblank-duration-us", crtc_mode_info->vblank_duration_us,  // Assume same for all
+                              "refresh-rate", crtc_mode_info->refresh_rate,
+                              "vblank-duration-us", crtc_mode_info->vblank_duration_us,
                               NULL);
 
   if (META_IS_ONSCREEN_NATIVE (framebuffer))
