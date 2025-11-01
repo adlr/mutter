@@ -95,14 +95,12 @@ static MetaRendererView *
 meta_renderer_create_view (MetaRenderer        *renderer,
                            MetaLogicalMonitor  *logical_monitor,
                            MetaMonitor         *monitor,
-                           MetaOutput          *output,
-                           MetaCrtc            *crtc,
+                           GList               *outputs,  // of MetaOutput *
+                           GList               *crtcs,  // of MetaCrtc *
                            GError             **error)
 {
   MetaRendererView *view;
 
-  g_autoptr (GList) outputs = g_list_prepend (NULL, output);
-  g_autoptr (GList) crtcs = g_list_prepend (NULL, crtc);
   view = META_RENDERER_GET_CLASS (renderer)->create_view (renderer,
                                                           logical_monitor,
                                                           monitor,
@@ -134,8 +132,8 @@ meta_renderer_rebuild_views (MetaRenderer *renderer)
 static void
 create_crtc_view (MetaLogicalMonitor *logical_monitor,
                   MetaMonitor        *monitor,
-                  MetaOutput         *output,
-                  MetaCrtc           *crtc,
+                  GList              *outputs,  // of MetaOutput *
+                  GList              *crtcs,  // of MetaCrtc *
                   gpointer            user_data)
 {
   MetaRenderer *renderer = user_data;
@@ -145,14 +143,14 @@ create_crtc_view (MetaLogicalMonitor *logical_monitor,
   view = meta_renderer_create_view (renderer,
                                     logical_monitor,
                                     monitor,
-                                    output,
-                                    crtc,
+                                    outputs,
+                                    crtcs,
                                     &error);
   if (!view)
     {
       g_warning ("Failed to create view for %s on %s: %s",
                  meta_monitor_get_display_name (monitor),
-                 meta_output_get_name (output),
+                 meta_output_get_name (outputs->data),
                  error->message);
     }
 }

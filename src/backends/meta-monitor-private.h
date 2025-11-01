@@ -52,9 +52,14 @@ typedef struct _MetaMonitorCrtcMode
 
 #define HANDLED_CRTC_MODE_FLAGS (META_CRTC_MODE_FLAG_INTERLACE)
 
+typedef gboolean (* MetaMonitorModeMultiFunc) (MetaMonitor         *monitor,
+                                          MetaMonitorMode     *mode,
+                                          GList               *monitor_crtc_modes,  // of MetaMonitorCrtcMode *
+                                          gpointer             user_data,
+                                          GError             **error);
 typedef gboolean (* MetaMonitorModeFunc) (MetaMonitor         *monitor,
                                           MetaMonitorMode     *mode,
-                                          MetaMonitorCrtcMode *monitor_crtc_mode,
+                                          MetaMonitorCrtcMode *monitor_crtc_modes,
                                           gpointer             user_data,
                                           GError             **error);
 
@@ -257,6 +262,13 @@ gboolean meta_monitor_mode_foreach_crtc (MetaMonitor          *monitor,
                                          MetaMonitorModeFunc   func,
                                          gpointer              user_data,
                                          GError              **error);
+
+META_EXPORT_TEST
+gboolean meta_monitor_mode_foreach_crtc_multi (MetaMonitor          *monitor,
+                                               MetaMonitorMode      *mode,
+                                               MetaMonitorModeMultiFunc   func,
+                                               gpointer              user_data,
+                                               GError              **error);
 
 META_EXPORT_TEST
 gboolean meta_monitor_mode_foreach_output (MetaMonitor          *monitor,

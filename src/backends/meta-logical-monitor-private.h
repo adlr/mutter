@@ -50,8 +50,8 @@ typedef struct _MetaLogicalMonitorId MetaLogicalMonitorId;
 
 typedef void (* MetaLogicalMonitorCrtcFunc) (MetaLogicalMonitor *logical_monitor,
                                              MetaMonitor        *monitor,
-                                             MetaOutput         *output,
-                                             MetaCrtc           *crtc,
+                                             GList              *outputs,  // of MetaOutput *
+                                             GList              *crtc,  // of MetaCrtc *
                                              gpointer            user_data);
 
 MetaLogicalMonitor * meta_logical_monitor_new (MetaMonitorManager       *monitor_manager,
