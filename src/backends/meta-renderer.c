@@ -101,11 +101,13 @@ meta_renderer_create_view (MetaRenderer        *renderer,
 {
   MetaRendererView *view;
 
+  g_autoptr (GList) outputs = g_list_prepend (NULL, output);
+  g_autoptr (GList) crtcs = g_list_prepend (NULL, crtc);
   view = META_RENDERER_GET_CLASS (renderer)->create_view (renderer,
                                                           logical_monitor,
                                                           monitor,
-                                                          output,
-                                                          crtc,
+                                                          outputs,
+                                                          crtcs,
                                                           error);
 
   if (view)
