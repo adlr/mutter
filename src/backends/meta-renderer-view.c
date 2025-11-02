@@ -163,7 +163,7 @@ meta_renderer_view_set_property (GObject      *object,
       break;
     case PROP_CRTCS:
       g_warn_if_fail (priv->crtcs == NULL);
-      priv->crtcs = g_value_get_pointer (value);
+      priv->crtcs = g_list_copy_deep (g_value_get_pointer (value), (GCopyFunc) g_object_ref, NULL);
       break;
     case PROP_COLOR_DEVICE:
       g_set_object (&priv->color_device, g_value_get_object (value));
@@ -204,6 +204,8 @@ meta_renderer_view_dispose (GObject *object)
     meta_renderer_view_get_instance_private (view);
 
   g_clear_object (&priv->color_device);
+  g_list_free_full (priv->crtcs, g_object_unref);
+  priv->crtcs = NULL;
 
   G_OBJECT_CLASS (meta_renderer_view_parent_class)->dispose (object);
 }
