@@ -616,14 +616,14 @@ get_tile_offset_size (MetaCrtc *crtc,
   g_warn_if_fail (outputs != NULL);
   MetaOutput *output = outputs->data;
   const MetaOutputInfo *output_info = meta_output_get_info (output);
-  // g_warning ("Tile info: lv %d, lh %d, width %d, height %d (# outputs: %d, first: %p, OI: %p)",
-  //           output_info->tile_info.loc_v_tile,
-  //           output_info->tile_info.loc_h_tile,
-  //           output_info->tile_info.tile_w,
-  //           output_info->tile_info.tile_h,
-  //           g_list_length ((GList*)outputs),
-  //           (MetaOutput*)output,
-  //           (MetaOutputInfo*)output_info);
+  g_warning ("Tile info: lv %d, lh %d, width %d, height %d (# outputs: %d, first: %p, OI: %p)",
+            output_info->tile_info.loc_v_tile,
+            output_info->tile_info.loc_h_tile,
+            output_info->tile_info.tile_w,
+            output_info->tile_info.tile_h,
+            g_list_length ((GList*)outputs),
+            (MetaOutput*)output,
+            (MetaOutputInfo*)output_info);
   int x = 0;
   int y = 0;
   int width = output_info->tile_info.tile_w;
@@ -647,26 +647,26 @@ get_tile_offset_size (MetaCrtc *crtc,
         }
       MetaOutput *other_output = other_outputs->data;
       const MetaOutputInfo *other_output_info = meta_output_get_info (other_output);
-      // g_warning ("Other tile info: lv %d, lh %d, width %d, height %d (# outputs: %d, first: %p, OI: %p)",
-      //           other_output_info->tile_info.loc_v_tile,
-      //           other_output_info->tile_info.loc_h_tile,
-      //           other_output_info->tile_info.tile_w,
-      //           other_output_info->tile_info.tile_h,
-      //           g_list_length ((GList*)other_outputs),
-      //           (MetaOutput*)other_output,
-      //           (MetaOutputInfo*)other_output_info);
-      if (output_info->tile_info.loc_h_tile == other_output_info->tile_info.loc_h_tile &&
-          output_info->tile_info.loc_v_tile > other_output_info->tile_info.loc_v_tile)
+      g_warning ("Other tile info: lv %d, lh %d, width %d, height %d (# outputs: %d, first: %p, OI: %p)",
+                other_output_info->tile_info.loc_v_tile,
+                other_output_info->tile_info.loc_h_tile,
+                other_output_info->tile_info.tile_w,
+                other_output_info->tile_info.tile_h,
+                g_list_length ((GList*)other_outputs),
+                (MetaOutput*)other_output,
+                (MetaOutputInfo*)other_output_info);
+      if (output_info->tile_info.loc_v_tile == other_output_info->tile_info.loc_v_tile &&
+          output_info->tile_info.loc_h_tile > other_output_info->tile_info.loc_h_tile)
         {
           x += other_output_info->tile_info.tile_w;
         }
-      if (output_info->tile_info.loc_v_tile == other_output_info->tile_info.loc_v_tile &&
-          output_info->tile_info.loc_h_tile > other_output_info->tile_info.loc_h_tile)
+      if (output_info->tile_info.loc_h_tile == other_output_info->tile_info.loc_h_tile &&
+          output_info->tile_info.loc_v_tile > other_output_info->tile_info.loc_v_tile)
         {
           y += other_output_info->tile_info.tile_h;
         }
     }
-  // g_warning ("Final shape for this crtc: %d %d %d %d", x, y, width, height);
+  g_warning ("Final shape for this crtc: %d %d %d %d", x, y, width, height);
   if (out_x) *out_x = x;
   if (out_y) *out_y = y;
   if (out_width) *out_width = width;
@@ -915,66 +915,90 @@ set_color_mode (MetaOutputKms *output_kms,
     meta_kms_update_set_hdr_metadata (kms_update, kms_connector, &hdr_metadata);
 }
 
+static MetaOutput *
+find_output_for_crtc (MetaCrtc *crtc, GList *outputs)
+{
+  const GList *l;
+  MetaOutput *ret = NULL;
+  for (l = meta_crtc_get_outputs (crtc); l; l = l->next)
+    {
+      MetaOutput *possible_output = l->data;
+      GList *match = g_list_find (outputs, possible_output);
+      if (match == NULL)
+        continue;
+      g_warn_if_fail (ret == NULL);  // Expecting only one match
+      ret = match->data;
+    }
+  g_warn_if_fail (ret != NULL);
+  return ret;
+}
+
 static void
 meta_onscreen_native_set_crtc_mode (CoglOnscreen              *onscreen,
                                     MetaKmsUpdate             *kms_update,
                                     MetaRendererNativeGpuData *renderer_gpu_data)
 {
   MetaOnscreenNative *onscreen_native = META_ONSCREEN_NATIVE (onscreen);
-  // ADLRTODO: what's even in this kms_update? For now assume only 1 output and crtc
-  g_warn_if_fail(g_list_length(onscreen_native->outputs) == 1);
-  g_warn_if_fail(g_list_length(onscreen_native->crtcs) == 1);
-  MetaCrtcKms *crtc_kms = META_CRTC_KMS (onscreen_native->crtcs->data);
-
-  COGL_TRACE_BEGIN_SCOPED (MetaOnscreenNativeSetCrtcModes,
-                           "Meta::OnscreenNative::set_crtc_mode()");
-
-  switch (renderer_gpu_data->mode)
+  // // ADLRTODO: what's even in this kms_update? For now assume only 1 output and crtc
+  // g_warn_if_fail(g_list_length(onscreen_native->outputs) == 1);
+  // g_warn_if_fail(g_list_length(onscreen_native->crtcs) == 1);
+  GList *l;
+  for (l = onscreen_native->crtcs; l; l = l->next)
     {
-    case META_RENDERER_NATIVE_MODE_GBM:
-      break;
-    case META_RENDERER_NATIVE_MODE_SURFACELESS:
-      g_assert_not_reached ();
-      break;
+      MetaCrtc *crtc = l->data;
+      MetaOutput *output = find_output_for_crtc (crtc, onscreen_native->outputs);
+      MetaCrtcKms *crtc_kms = META_CRTC_KMS (crtc);
+
+      COGL_TRACE_BEGIN_SCOPED (MetaOnscreenNativeSetCrtcModes,
+                              "Meta::OnscreenNative::set_crtc_mode()");
+
+      switch (renderer_gpu_data->mode)
+        {
+        case META_RENDERER_NATIVE_MODE_GBM:
+          break;
+        case META_RENDERER_NATIVE_MODE_SURFACELESS:
+          g_assert_not_reached ();
+          break;
 #ifdef HAVE_EGL_DEVICE
-    case META_RENDERER_NATIVE_MODE_EGL_DEVICE:
-      {
-        MetaDrmBuffer *buffer;
-        graphene_rect_t src_rect;
-        MtkRectangle dst_rect;
+        case META_RENDERER_NATIVE_MODE_EGL_DEVICE:
+          {
+            MetaDrmBuffer *buffer;
+            graphene_rect_t src_rect;
+            MtkRectangle dst_rect;
 
-        buffer = META_DRM_BUFFER (onscreen_native->egl.dumb_fb);
+            buffer = META_DRM_BUFFER (onscreen_native->egl.dumb_fb);
 
-        src_rect = (graphene_rect_t) {
-          .origin.x = 0,
-          .origin.y = 0,
-          .size.width = meta_drm_buffer_get_width (buffer),
-          .size.height = meta_drm_buffer_get_height (buffer)
-        };
+            src_rect = (graphene_rect_t) {
+              .origin.x = 0,
+              .origin.y = 0,
+              .size.width = meta_drm_buffer_get_width (buffer),
+              .size.height = meta_drm_buffer_get_height (buffer)
+            };
 
-        dst_rect = (MtkRectangle) {
-          .x = 0,
-          .y = 0,
-          .width = meta_drm_buffer_get_width (buffer),
-          .height = meta_drm_buffer_get_height (buffer)
-        };
+            dst_rect = (MtkRectangle) {
+              .x = 0,
+              .y = 0,
+              .width = meta_drm_buffer_get_width (buffer),
+              .height = meta_drm_buffer_get_height (buffer)
+            };
 
-        assign_primary_plane (crtc_kms,
-                              buffer,
-                              kms_update,
-                              META_KMS_ASSIGN_PLANE_FLAG_NONE,
-                              &src_rect,
-                              &dst_rect);
-        break;
-      }
+            assign_primary_plane (crtc_kms,
+                                  buffer,
+                                  kms_update,
+                                  META_KMS_ASSIGN_PLANE_FLAG_NONE,
+                                  &src_rect,
+                                  &dst_rect);
+            break;
+          }
 #endif
-    }
+        }
 
-  meta_crtc_kms_set_mode (crtc_kms, kms_update);
-  set_underscan (META_OUTPUT_KMS (onscreen_native->outputs->data), kms_update);
-  set_max_bpc (META_OUTPUT_KMS (onscreen_native->outputs->data), kms_update);
-  set_rgb_range (META_OUTPUT_KMS (onscreen_native->outputs->data), kms_update);
-  set_color_mode (META_OUTPUT_KMS (onscreen_native->outputs->data), kms_update);
+      meta_crtc_kms_set_mode (crtc_kms, kms_update);
+      set_underscan (META_OUTPUT_KMS (output), kms_update);
+      set_max_bpc (META_OUTPUT_KMS (output), kms_update);
+      set_rgb_range (META_OUTPUT_KMS (output), kms_update);
+      set_color_mode (META_OUTPUT_KMS (output), kms_update);
+    }
 }
 
 static void

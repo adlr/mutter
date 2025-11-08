@@ -1206,6 +1206,7 @@ meta_kms_impl_device_atomic_process_update (MetaKmsImplDevice *impl_device,
                    t_end.tv_sec, t_end.tv_nsec);
       goto err;
     }
+  meta_topic (META_DEBUG_KMS, "[atomic] KMS update succeeded");
 
   drmModeAtomicFree (req);
 
