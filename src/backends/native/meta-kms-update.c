@@ -251,25 +251,30 @@ static void
 update_latch_crtc (MetaKmsUpdate *update,
                    MetaKmsCrtc   *crtc)
 {
+  g_warning ("update_latch_crtc (%p, %p ID: %d), is_l: %d, lat_len: %d, first: %p",
+             update, crtc, meta_kms_crtc_get_id (crtc),
+             update->is_latchable, g_list_length (update->latch_crtcs),
+             update->latch_crtcs ? update->latch_crtcs->data : NULL);
   if (update->is_latchable)
     {
       if (!g_list_find(update->latch_crtcs, crtc))
         {
           if (update->latch_crtcs)
             {
-              int cur_width = meta_kms_crtc_get_current_state(update->latch_crtcs->data)->rect.width;
-              int cur_height = meta_kms_crtc_get_current_state(update->latch_crtcs->data)->rect.height;
-              int new_width = meta_kms_crtc_get_current_state(crtc)->rect.width;
-              int new_height = meta_kms_crtc_get_current_state(crtc)->rect.height;
-              if (cur_width != new_width || cur_height != new_height)
-                {
-                  g_warning ("Adding latch crtc (%d x %d) but already have (%d x %d)",
-                            new_width, new_height, cur_width, cur_height);
-                  update->is_latchable = FALSE;
-                  g_list_free (update->latch_crtcs);
-                  update->latch_crtcs = NULL;
-                  return;
-                }
+              // ADLRTODO: should we not allow any crtc to join in?
+              // int cur_width = meta_kms_crtc_get_current_state(update->latch_crtcs->data)->rect.width;
+              // int cur_height = meta_kms_crtc_get_current_state(update->latch_crtcs->data)->rect.height;
+              // int new_width = meta_kms_crtc_get_current_state(crtc)->rect.width;
+              // int new_height = meta_kms_crtc_get_current_state(crtc)->rect.height;
+              // if (cur_width != new_width || cur_height != new_height)
+              //   {
+              //     g_warning ("Adding latch crtc (%d x %d) but already have (%d x %d)",
+              //               new_width, new_height, cur_width, cur_height);
+              //     update->is_latchable = FALSE;
+              //     g_list_free (update->latch_crtcs);
+              //     update->latch_crtcs = NULL;
+              //     return;
+              //   }
             }
           update->latch_crtcs = g_list_prepend (update->latch_crtcs, crtc);
         }

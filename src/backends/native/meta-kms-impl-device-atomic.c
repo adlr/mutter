@@ -1193,11 +1193,17 @@ meta_kms_impl_device_atomic_process_update (MetaKmsImplDevice *impl_device,
   g_warning("Doing page flip from:\n");
   _cogl_debug_log_backtrace();
   fd = meta_kms_impl_device_get_fd (impl_device);
+  struct timespec t_start;
+  struct timespec t_end;
+  g_warn_if_fail (clock_gettime (CLOCK_BOOTTIME, &t_start) == 0);
   ret = drmModeAtomicCommit (fd, req, commit_flags, impl_device);
+  g_warn_if_fail (clock_gettime (CLOCK_BOOTTIME, &t_end) == 0);
   if (ret < 0)
     {
       g_set_error (&error, G_IO_ERROR, g_io_error_from_errno (-ret),
-                   "drmModeAtomicCommit: %s", g_strerror (-ret));
+                   "drmModeAtomicCommit: %s (%ld.%09ld - %ld.%09ld)", g_strerror (-ret),
+                   t_start.tv_sec, t_start.tv_nsec,
+                   t_end.tv_sec, t_end.tv_nsec);
       goto err;
     }
 
