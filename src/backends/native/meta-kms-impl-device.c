@@ -1418,6 +1418,18 @@ ensure_deadline_timer_armed (MetaKmsImplDevice *impl_device,
 
       return FALSE;
     }
+  if (crtc_frame->crtcs->next)
+    {
+      int64_t next_deadline2_us;
+      int64_t next_presentation2_us;
+      g_warn_if_fail (meta_kms_crtc_determine_deadline (crtc_frame->crtcs->next->data,
+                                         &next_deadline2_us,
+                                         &next_presentation2_us,
+                                         &local_error));
+      g_warning ("Using first of deadlines: %ld %ld (second: %ld %ld)",
+                 next_deadline_us, next_presentation_us,
+                 next_deadline2_us, next_presentation2_us);
+    }
 
   arm_crtc_frame_deadline_timer (crtc_frame,
                                  next_deadline_us,
@@ -1608,13 +1620,18 @@ do_process (MetaKmsImplDevice *impl_device,
         {
           GMainContext *thread_context =
             meta_thread_impl_get_main_context (thread_impl);
+          GList *l;
 
-          // ADLRTODO: support multiple crtc_frame->crtcs here
-          meta_kms_update_add_page_flip_listener (update,
-                                                  crtc_frame->crtcs->data,
-                                                  &crtc_page_flip_listener_vtable,
-                                                  thread_context,
-                                                  crtc_frame, NULL);
+          for (l = crtc_frame->crtcs; l; l = l->next)
+            {
+              MetaKmsCrtc *kms_crtc = l->data;
+              meta_kms_update_add_page_flip_listener (update,
+                                                      kms_crtc,
+                                                      &crtc_page_flip_listener_vtable,
+                                                      thread_context,
+                                                      crtc_frame, NULL);
+            }
+
           crtc_frame->pending_page_flip = TRUE;
         }
     }
@@ -1909,7 +1926,6 @@ meta_kms_impl_device_do_process_update (MetaKmsImplDevice *impl_device,
 
   meta_kms_device_handle_flush (priv->device, latch_crtcs);
 
-  // ADLRTODO: support more crtcs coming into meta_kms_impl_device_do_process_update
   feedback = do_process (impl_device, latch_crtcs, update, flags);
 
   if (meta_kms_feedback_did_pass (feedback) &&
