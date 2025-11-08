@@ -314,7 +314,7 @@ meta_logical_monitor_foreach_crtc (MetaLogicalMonitor        *logical_monitor,
       };
 
       mode = meta_monitor_get_current_mode (monitor);
-      gboolean new_tiled_mode = false;
+      gboolean new_tiled_mode = TRUE;
       if (new_tiled_mode)
         meta_monitor_mode_foreach_crtc_multi (monitor, mode, foreach_crtc_multi, &data, NULL);
       else
