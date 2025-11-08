@@ -62,7 +62,7 @@ MetaOnscreenNative * meta_onscreen_native_new (MetaRendererNative *renderer_nati
                                                int                 height);
 
 META_EXPORT_TEST
-MetaCrtc * meta_onscreen_native_get_crtc (MetaOnscreenNative *onscreen_native);
+GList * meta_onscreen_native_get_crtcs (MetaOnscreenNative *onscreen_native);  // of MetaCrtc *
 
 void meta_onscreen_native_invalidate (MetaOnscreenNative *onscreen_native);
 
@@ -72,3 +72,10 @@ void meta_onscreen_native_request_frame_sync (MetaOnscreenNative *onscreen_nativ
                                               gboolean            enabled);
 
 gboolean meta_onscreen_native_is_frame_sync_enabled (MetaOnscreenNative *onscreen_native);
+
+void get_tile_offset_size (MetaCrtc *crtc,
+                           GList *all,  // of type MetaCrtc *
+                           int *out_x,
+                           int *out_y,
+                           int *out_width,
+                           int *out_height);
