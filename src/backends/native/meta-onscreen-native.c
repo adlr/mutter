@@ -603,7 +603,7 @@ dump_crtc_info (MetaCrtc *crtc)
 }
 
 // Gets the offset and size of `crtc` if tiled
-static void
+void
 get_tile_offset_size (MetaCrtc *crtc,
                       GList *all,  // of type MetaCrtc *
                       int *out_x,
@@ -3281,12 +3281,10 @@ meta_onscreen_native_class_init (MetaOnscreenNativeClass *klass)
   blit_source_quark = g_quark_from_static_string ("Blit source");
 }
 
-MetaCrtc *
-meta_onscreen_native_get_crtc (MetaOnscreenNative *onscreen_native)
+GList *  // of MetaCrtc *
+meta_onscreen_native_get_crtcs (MetaOnscreenNative *onscreen_native)
 {
-  // ADLRTODO: remove or change this function
-  g_warn_if_fail(g_list_length(onscreen_native->crtcs) == 1);
-  return onscreen_native->crtcs->data;
+  return onscreen_native->crtcs;
 }
 
 void

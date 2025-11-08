@@ -82,7 +82,7 @@ typedef struct _CrtcDeadline
   struct {
     MetaKmsUpdate *kms_update;
     MetaKmsUpdateFlag flags;
-    MetaKmsCrtc *latch_crtc;
+    GList *latch_crtcs;  // of MetaKmsCrtc *
     GSource *source;
   } submitted_update;
 } CrtcFrame;
@@ -1746,6 +1746,7 @@ crtc_frame_free (CrtcFrame *crtc_frame)
   g_clear_pointer (&crtc_frame->pending_update, meta_kms_update_free);
   g_clear_pointer (&crtc_frame->submitted_update.kms_update, meta_kms_update_free);
   g_clear_pointer (&crtc_frame->submitted_update.source, g_source_destroy);
+  g_clear_pointer (&crtc_frame->submitted_update.latch_crtcs, g_list_free);
   g_free (crtc_frame);
 }
 
@@ -1931,7 +1932,8 @@ meta_kms_impl_device_update_ready (MetaThreadImpl  *impl,
     meta_kms_impl_device_get_instance_private (impl_device);
   gboolean want_deadline_timer;
   MetaKmsUpdate *update;
-  MetaKmsCrtc *latch_crtc;
+  //MetaKmsCrtc *latch_crtc;
+  g_autoptr (GList) latch_crtcs;  // of MetaKmsCrtc *
 
   meta_assert_in_kms_impl (meta_kms_impl_get_kms (priv->impl));
 
@@ -1940,7 +1942,7 @@ meta_kms_impl_device_update_ready (MetaThreadImpl  *impl,
   update = g_steal_pointer (&crtc_frame->submitted_update.kms_update);
   meta_kms_update_realize (update, impl_device);
 
-  latch_crtc = g_steal_pointer (&crtc_frame->submitted_update.latch_crtc);
+  latch_crtcs = g_steal_pointer (&crtc_frame->submitted_update.latch_crtcs);  // takes ownership, must free list
 
   // Assuming we can just check the first crtc in a tiled group for vrr enabled
   want_deadline_timer =
@@ -1953,11 +1955,12 @@ meta_kms_impl_device_update_ready (MetaThreadImpl  *impl,
     {
       if (crtc_frame->pending_page_flip)
         {
-          g_assert (latch_crtc);
+          g_assert (latch_crtcs);
 
           meta_topic (META_DEBUG_KMS,
-                      "Queuing update on CRTC %u (%s): pending page flip",
-                      meta_kms_crtc_get_id (latch_crtc),
+                      "Queuing update on CRTC %u (cnt %d) (%s): pending page flip",
+                      meta_kms_crtc_get_id (latch_crtcs->data),
+                      g_list_length (latch_crtcs),
                       priv->path);
         }
 
@@ -1968,12 +1971,9 @@ meta_kms_impl_device_update_ready (MetaThreadImpl  *impl,
         return GINT_TO_POINTER (TRUE);
     }
 
-  // ADLRTOD: support multiple latch_crtcs here
-  GList *latch_crtcs = g_list_prepend (NULL, latch_crtc);
   meta_kms_impl_device_do_process_update (impl_device, crtc_frame, latch_crtcs,
                                           update,
                                           crtc_frame->submitted_update.flags);
-  g_list_free (latch_crtcs);
 
   return GINT_TO_POINTER (TRUE);
 }
@@ -2004,7 +2004,7 @@ meta_kms_impl_device_handle_update (MetaKmsImplDevice *impl_device,
   MetaThreadImpl *thread_impl = META_THREAD_IMPL (kms_impl);
   g_autoptr (GError) error = NULL;
   GList *latch_crtcs;
-  MetaKmsCrtc *latch_crtc;
+  //MetaKmsCrtc *latch_crtc;
   CrtcFrame *crtc_frame;
   MetaKmsFeedback *feedback;
   g_autoptr (GSource) source = NULL;
@@ -2020,13 +2020,6 @@ meta_kms_impl_device_handle_update (MetaKmsImplDevice *impl_device,
                    "Only single-CRTC updates supported");
       goto err;
     }
-  if (g_list_length (latch_crtcs) > 1)
-    {
-      g_set_error (&error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT,
-                   "Need updates for tiled displays");
-      goto err;
-    }
-  latch_crtc = latch_crtcs->data;
 
   if (!priv->crtc_frames)
     {
@@ -2049,7 +2042,7 @@ meta_kms_impl_device_handle_update (MetaKmsImplDevice *impl_device,
   crtc_frame->await_flush = FALSE;
   crtc_frame->submitted_update.kms_update = update;
   crtc_frame->submitted_update.flags = flags;
-  crtc_frame->submitted_update.latch_crtc = latch_crtc;
+  crtc_frame->submitted_update.latch_crtcs = g_list_copy (latch_crtcs);
 
   if (is_using_deadline_timer (impl_device))
     sync_fd = meta_kms_update_get_sync_fd (update);
@@ -2080,8 +2073,9 @@ meta_kms_impl_device_handle_update (MetaKmsImplDevice *impl_device,
                                          meta_kms_impl_device_update_ready,
                                          crtc_frame);
 
-  name = g_strdup_printf ("[mutter] KMS update sync_fd (crtc: %u, %s)",
-                          meta_kms_crtc_get_id (latch_crtc),
+  name = g_strdup_printf ("[mutter] KMS update sync_fd (crtc: %u (cnt %d), %s)",
+                          meta_kms_crtc_get_id (latch_crtcs->data),  // using first crtc here
+                          g_list_length (latch_crtcs),
                           priv->path);
   g_source_set_name (source, name);
   g_source_set_priority (source, G_PRIORITY_HIGH + 1);
