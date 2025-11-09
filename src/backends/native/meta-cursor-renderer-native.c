@@ -356,67 +356,78 @@ meta_cursor_renderer_native_update_cursor (MetaCursorRenderer *cursor_renderer,
     {
       MetaStageView *view = l->data;
       MetaRendererView *renderer_view = META_RENDERER_VIEW (view);
-      for (m = meta_renderer_view_get_crtcs (renderer_view); m; m = m->next)
+      GList *crtcs = meta_renderer_view_get_crtcs (renderer_view);
+      g_warn_if_fail (crtcs != NULL);
+      MetaCrtc *primary_crtc = crtcs->data;
+      MetaCrtcNative *primary_crtc_native = META_CRTC_NATIVE (primary_crtc);
+      MetaGpu *gpu = meta_crtc_get_gpu (primary_crtc);
+      ClutterColorState *target_color_state =
+        clutter_stage_view_get_output_color_state (CLUTTER_STAGE_VIEW (view));
+      CursorStageView *cursor_stage_view = NULL;
+      gboolean has_hw_cursor = FALSE;
+
+      cursor_stage_view = get_cursor_stage_view (view);
+      g_assert (cursor_stage_view);
+
+      if (!META_IS_CRTC_KMS (primary_crtc) ||
+          !is_hw_cursor_available_for_gpu (META_GPU_KMS (gpu)) ||
+          !meta_crtc_native_is_hw_cursor_supported (primary_crtc_native))
         {
-          MetaCrtc *crtc = m->data;
-          MetaCrtcNative *crtc_native = META_CRTC_NATIVE (crtc);
-          MetaGpu *gpu = meta_crtc_get_gpu (crtc);
-          ClutterColorState *target_color_state =
-            clutter_stage_view_get_output_color_state (CLUTTER_STAGE_VIEW (view));
-          CursorStageView *cursor_stage_view = NULL;
-          gboolean has_hw_cursor = FALSE;
+          cursor_stage_view->is_hw_cursor_valid = TRUE;
+          has_hw_cursor = FALSE;
+        }
+      else if (cursor_sprite && !meta_backend_is_hw_cursors_inhibited (backend))
+        {
+          meta_cursor_sprite_realize_texture (cursor_sprite);
 
-          cursor_stage_view = get_cursor_stage_view (view);
-          g_assert (cursor_stage_view);
-
-          if (!META_IS_CRTC_KMS (crtc) ||
-              !is_hw_cursor_available_for_gpu (META_GPU_KMS (gpu)) ||
-              !meta_crtc_native_is_hw_cursor_supported (crtc_native))
+          if (cursor_changed ||
+              !cursor_stage_view->is_hw_cursor_valid)
             {
+              g_warning ("About to iterate %d crtcs", g_list_length (crtcs));
+              for (m = crtcs; m; m = m->next)
+                {
+                  MetaCrtc *crtc = m->data;
+                  gboolean success = realize_cursor_sprite_for_crtc (cursor_renderer,
+                                                                     META_CRTC_KMS (crtc),
+                                                                     target_color_state,
+                                                                     cursor_sprite);
+                  if (m != crtcs)  // Expect all to succeed or all to fail
+                    g_warn_if_fail (success == has_hw_cursor);
+                  has_hw_cursor = success;
+                }
+
               cursor_stage_view->is_hw_cursor_valid = TRUE;
-              has_hw_cursor = FALSE;
-            }
-          else if (cursor_sprite && !meta_backend_is_hw_cursors_inhibited (backend))
-            {
-              meta_cursor_sprite_realize_texture (cursor_sprite);
-
-              if (cursor_changed ||
-                  !cursor_stage_view->is_hw_cursor_valid)
-                {
-                  has_hw_cursor = realize_cursor_sprite_for_crtc (cursor_renderer,
-                                                                  META_CRTC_KMS (crtc),
-                                                                  target_color_state,
-                                                                  cursor_sprite);
-
-                  cursor_stage_view->is_hw_cursor_valid = TRUE;
-                }
-              else
-                {
-                  has_hw_cursor =
-                    cursor_stage_view->is_hw_cursor_valid &&
-                    cursor_stage_view->has_hw_cursor;
-                }
-
-              if (has_hw_cursor)
-                cursor_stage_view->needs_emit_painted = TRUE;
             }
           else
             {
-              cursor_stage_view->is_hw_cursor_valid = FALSE;
-              has_hw_cursor = FALSE;
+              has_hw_cursor =
+                cursor_stage_view->is_hw_cursor_valid &&
+                cursor_stage_view->has_hw_cursor;
             }
 
-          if (cursor_stage_view->has_hw_cursor != has_hw_cursor)
+          if (has_hw_cursor)
+            cursor_stage_view->needs_emit_painted = TRUE;
+        }
+      else
+        {
+          cursor_stage_view->is_hw_cursor_valid = FALSE;
+          has_hw_cursor = FALSE;
+        }
+
+      if (cursor_stage_view->has_hw_cursor != has_hw_cursor)
+        {
+          if (has_hw_cursor)
+            meta_stage_view_inhibit_cursor_overlay (view);
+          else
+            meta_stage_view_uninhibit_cursor_overlay (view);
+
+          cursor_stage_view->has_hw_cursor = has_hw_cursor;
+
+          if (!has_hw_cursor)
             {
-              if (has_hw_cursor)
-                meta_stage_view_inhibit_cursor_overlay (view);
-              else
-                meta_stage_view_uninhibit_cursor_overlay (view);
-
-              cursor_stage_view->has_hw_cursor = has_hw_cursor;
-
-              if (!has_hw_cursor)
+              for (m = crtcs; m; m = m->next)
                 {
+                  MetaCrtc *crtc = m->data;
                   MetaCrtcKms *crtc_kms = META_CRTC_KMS (crtc);
                   MetaKmsCrtc *kms_crtc = meta_crtc_kms_get_kms_crtc (crtc_kms);
 
@@ -428,7 +439,6 @@ meta_cursor_renderer_native_update_cursor (MetaCursorRenderer *cursor_renderer,
                 }
             }
         }
-
     }
 
   if (cursor_changed)

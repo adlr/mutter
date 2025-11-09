@@ -1578,12 +1578,15 @@ do_process (MetaKmsImplDevice *impl_device,
   CrtcFrame *crtc_frame = NULL;
   MetaKmsFeedback *feedback;
   MetaKmsResourceChanges changes = META_KMS_RESOURCE_CHANGE_NONE;
+  GList *l;
 
   COGL_TRACE_BEGIN_SCOPED (MetaKmsImplDeviceProcess,
                            "Meta::KmsImplDevice::do_process()");
 
-  // ADLRTODO: pass all latch_crtcs to this function
-  update = meta_kms_impl_filter_update (impl, latch_crtcs ? latch_crtcs->data : NULL, update, flags);
+  for (l = latch_crtcs; l; l = l->next) {
+    MetaKmsCrtc *latch_crtc = l->data;
+    update = meta_kms_impl_filter_update (impl, latch_crtc, update, flags);
+  }
 
   if (!update || meta_kms_update_is_empty (update))
     {
@@ -1620,7 +1623,6 @@ do_process (MetaKmsImplDevice *impl_device,
         {
           GMainContext *thread_context =
             meta_thread_impl_get_main_context (thread_impl);
-          GList *l;
 
           for (l = crtc_frame->crtcs; l; l = l->next)
             {

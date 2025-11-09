@@ -67,7 +67,7 @@ meta_renderer_view_get_crtcs (MetaRendererView *view)
 {
   MetaRendererViewPrivate *priv =
     meta_renderer_view_get_instance_private (view);
-
+  g_warning ("RendererView returning %d crtcs", g_list_length (priv->crtcs));
   return priv->crtcs;
 }
 
@@ -164,6 +164,7 @@ meta_renderer_view_set_property (GObject      *object,
     case PROP_CRTCS:
       g_warn_if_fail (priv->crtcs == NULL);
       priv->crtcs = g_list_copy_deep (g_value_get_pointer (value), (GCopyFunc) g_object_ref, NULL);
+      g_warning ("RendererView set to %d crtcs", g_list_length (priv->crtcs));
       break;
     case PROP_COLOR_DEVICE:
       g_set_object (&priv->color_device, g_value_get_object (value));
