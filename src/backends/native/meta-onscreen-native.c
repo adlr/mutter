@@ -615,14 +615,14 @@ get_tile_offset_size (MetaCrtc *crtc,
   g_warn_if_fail (outputs != NULL);
   MetaOutput *output = outputs->data;
   const MetaOutputInfo *output_info = meta_output_get_info (output);
-  // g_warning ("Tile info: lv %d, lh %d, width %d, height %d (# outputs: %d, first: %p, OI: %p)",
-  //           output_info->tile_info.loc_v_tile,
-  //           output_info->tile_info.loc_h_tile,
-  //           output_info->tile_info.tile_w,
-  //           output_info->tile_info.tile_h,
-  //           g_list_length ((GList*)outputs),
-  //           (MetaOutput*)output,
-  //           (MetaOutputInfo*)output_info);
+  g_warning ("Tile info: lv %d, lh %d, width %d, height %d (# outputs: %d, first: %p, OI: %p)",
+            output_info->tile_info.loc_v_tile,
+            output_info->tile_info.loc_h_tile,
+            output_info->tile_info.tile_w,
+            output_info->tile_info.tile_h,
+            g_list_length ((GList*)outputs),
+            (MetaOutput*)output,
+            (MetaOutputInfo*)output_info);
   int x = 0;
   int y = 0;
   int width = output_info->tile_info.tile_w;
@@ -646,14 +646,14 @@ get_tile_offset_size (MetaCrtc *crtc,
         }
       MetaOutput *other_output = other_outputs->data;
       const MetaOutputInfo *other_output_info = meta_output_get_info (other_output);
-      // g_warning ("Other tile info: lv %d, lh %d, width %d, height %d (# outputs: %d, first: %p, OI: %p)",
-      //           other_output_info->tile_info.loc_v_tile,
-      //           other_output_info->tile_info.loc_h_tile,
-      //           other_output_info->tile_info.tile_w,
-      //           other_output_info->tile_info.tile_h,
-      //           g_list_length ((GList*)other_outputs),
-      //           (MetaOutput*)other_output,
-      //           (MetaOutputInfo*)other_output_info);
+      g_warning ("Other tile info: lv %d, lh %d, width %d, height %d (# outputs: %d, first: %p, OI: %p)",
+                other_output_info->tile_info.loc_v_tile,
+                other_output_info->tile_info.loc_h_tile,
+                other_output_info->tile_info.tile_w,
+                other_output_info->tile_info.tile_h,
+                g_list_length ((GList*)other_outputs),
+                (MetaOutput*)other_output,
+                (MetaOutputInfo*)other_output_info);
       if (output_info->tile_info.loc_v_tile == other_output_info->tile_info.loc_v_tile &&
           output_info->tile_info.loc_h_tile > other_output_info->tile_info.loc_h_tile)
         {
@@ -665,7 +665,7 @@ get_tile_offset_size (MetaCrtc *crtc,
           y += other_output_info->tile_info.tile_h;
         }
     }
-  // g_warning ("Final shape for this crtc: %d %d %d %d", x, y, width, height);
+  g_warning ("Final shape for this crtc: %d %d %d %d", x, y, width, height);
   if (out_x) *out_x = x;
   if (out_y) *out_y = y;
   if (out_width) *out_width = width;
