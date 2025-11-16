@@ -1224,6 +1224,7 @@ meta_renderer_native_queue_modes_reset (MetaRendererNative *renderer_native)
           kms_crtc = meta_crtc_kms_get_kms_crtc (crtc_kms);
 
           clutter_stage_view_get_layout (stage_view, &view_layout);
+          g_warning ("Got layout: %d %d %d %d", view_layout.x, view_layout.y, view_layout.width, view_layout.height);
           view_scale = clutter_stage_view_get_scale (stage_view);
 
           crtc_layout = (MetaKmsCrtcLayout) {
