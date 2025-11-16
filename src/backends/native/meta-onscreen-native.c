@@ -576,7 +576,7 @@ static gboolean
 meta_onscreen_native_flip_crtc (CoglOnscreen           *onscreen,
                                 ClutterFrame           *frame,
                                 MetaRendererView       *view,
-                                MetaCrtc               *crtc,
+                                GList                  *crtcs,  // of type MetaCrtc *
                                 MetaKmsUpdate          *kms_update,
                                 MetaKmsAssignPlaneFlag  flags,
                                 const MtkRegion        *region)
@@ -585,85 +585,111 @@ meta_onscreen_native_flip_crtc (CoglOnscreen           *onscreen,
   MetaRendererNative *renderer_native = onscreen_native->renderer_native;
   MetaFrameNative *frame_native;
   MetaGpuKms *render_gpu = onscreen_native->render_gpu;
-  MetaCrtcKms *crtc_kms = META_CRTC_KMS (crtc);
-  MetaKmsCrtc *kms_crtc = meta_crtc_kms_get_kms_crtc (crtc_kms);
   MetaRendererNativeGpuData *renderer_gpu_data;
   MetaGpuKms *gpu_kms;
   MetaDrmBuffer *buffer;
   CoglScanout *scanout;
   MetaKmsPlaneAssignment *plane_assignment;
+  GList *l;
   graphene_rect_t src_rect;
   MtkRectangle dst_rect;
 
   COGL_TRACE_BEGIN_SCOPED (MetaOnscreenNativeFlipCrtcs,
                            "Meta::OnscreenNative::flip_crtc()");
 
-  gpu_kms = META_GPU_KMS (meta_crtc_get_gpu (crtc));
+  // Assuming same gpu for all crtcs
+  gpu_kms = META_GPU_KMS (meta_crtc_get_gpu (crtcs->data));
 
-  g_assert (meta_gpu_kms_is_crtc_active (gpu_kms, crtc));
+  for (l = crtcs; l; l = l->next)
+   {
+    MetaCrtc *crtc = l->data;
+    MetaCrtcKms *crtc_kms = META_CRTC_KMS (crtc);
+    //MetaKmsCrtc *kms_crtc = meta_crtc_kms_get_kms_crtc (crtc_kms);
 
-  renderer_gpu_data = meta_renderer_native_get_gpu_data (renderer_native,
-                                                         render_gpu);
-  switch (renderer_gpu_data->mode)
+    g_assert (meta_gpu_kms_is_crtc_active (gpu_kms, crtc));
+
+    renderer_gpu_data = meta_renderer_native_get_gpu_data (renderer_native,
+                                                          render_gpu);
+    switch (renderer_gpu_data->mode)
+      {
+      case META_RENDERER_NATIVE_MODE_GBM:
+        frame_native = meta_frame_native_from_frame (frame);
+        buffer = meta_frame_native_get_buffer (frame_native);
+        if (!buffer)
+          return FALSE;
+
+        scanout = meta_frame_native_get_scanout (frame_native);
+
+        if (scanout)
+          {
+            // ADLRTODO: handle scanout with tiled display
+            cogl_scanout_get_src_rect (scanout, &src_rect);
+            cogl_scanout_get_dst_rect (scanout, &dst_rect);
+          }
+        else
+          {
+            src_rect = (graphene_rect_t) {
+              .origin.x = 0,
+              .origin.y = 0,
+              .size.width = meta_drm_buffer_get_width (buffer),
+              .size.height = meta_drm_buffer_get_height (buffer)
+            };
+            dst_rect = (MtkRectangle) {
+              .x = 0,
+              .y = 0,
+              .width = meta_drm_buffer_get_width (buffer),
+              .height = meta_drm_buffer_get_height (buffer)
+            };
+            const GList *outputs = meta_crtc_get_outputs (crtc);
+            g_warning ("Number of outputs for CRTC: %d", g_list_length ((GList*) outputs));
+            if (outputs != NULL) {
+              MetaOutput *output = outputs->data;
+              const MetaOutputInfo *output_info = meta_output_get_info (output);
+              g_warning ("Tile info: lv %d, lh %d, width %d, height %d",
+                         output_info->tile_info.loc_v_tile,
+                         output_info->tile_info.loc_h_tile,
+                         output_info->tile_info.tile_w,
+                         output_info->tile_info.tile_h);
+            }
+          }
+
+        plane_assignment = assign_primary_plane (crtc_kms,
+                                                 buffer,
+                                                 kms_update,
+                                                 flags,
+                                                 &src_rect,
+                                                 &dst_rect);
+
+        if (region && !mtk_region_is_empty (region))
+          meta_kms_plane_assignment_set_fb_damage (plane_assignment, region);
+        break;
+      case META_RENDERER_NATIVE_MODE_SURFACELESS:
+        g_assert_not_reached ();
+        break;
+  #ifdef HAVE_EGL_DEVICE
+      case META_RENDERER_NATIVE_MODE_EGL_DEVICE:
+        meta_kms_update_set_flushing (kms_update, kms_crtc);
+        meta_kms_update_set_custom_page_flip (kms_update,
+                                              custom_egl_stream_page_flip,
+                                              onscreen_native);
+        break;
+  #endif
+      }
+   }
+  // ADLRTODO: change this to take multiple crtcs:
+  for (l = crtcs; l; l = l->next)
     {
-    case META_RENDERER_NATIVE_MODE_GBM:
-      frame_native = meta_frame_native_from_frame (frame);
-      buffer = meta_frame_native_get_buffer (frame_native);
-      if (!buffer)
-        return FALSE;
+      MetaCrtc *crtc = l->data;
+      MetaCrtcKms *crtc_kms = META_CRTC_KMS (crtc);
+      MetaKmsCrtc *kms_crtc = meta_crtc_kms_get_kms_crtc (crtc_kms);
 
-      scanout = meta_frame_native_get_scanout (frame_native);
-
-      if (scanout)
-        {
-          cogl_scanout_get_src_rect (scanout, &src_rect);
-          cogl_scanout_get_dst_rect (scanout, &dst_rect);
-        }
-      else
-        {
-          src_rect = (graphene_rect_t) {
-            .origin.x = 0,
-            .origin.y = 0,
-            .size.width = meta_drm_buffer_get_width (buffer),
-            .size.height = meta_drm_buffer_get_height (buffer)
-          };
-          dst_rect = (MtkRectangle) {
-            .x = 0,
-            .y = 0,
-            .width = meta_drm_buffer_get_width (buffer),
-            .height = meta_drm_buffer_get_height (buffer)
-          };
-        }
-
-      plane_assignment = assign_primary_plane (crtc_kms,
-                                               buffer,
-                                               kms_update,
-                                               flags,
-                                               &src_rect,
-                                               &dst_rect);
-
-      if (region && !mtk_region_is_empty (region))
-        meta_kms_plane_assignment_set_fb_damage (plane_assignment, region);
-      break;
-    case META_RENDERER_NATIVE_MODE_SURFACELESS:
-      g_assert_not_reached ();
-      break;
-#ifdef HAVE_EGL_DEVICE
-    case META_RENDERER_NATIVE_MODE_EGL_DEVICE:
-      meta_kms_update_set_flushing (kms_update, kms_crtc);
-      meta_kms_update_set_custom_page_flip (kms_update,
-                                            custom_egl_stream_page_flip,
-                                            onscreen_native);
-      break;
-#endif
+      meta_kms_update_add_page_flip_listener (kms_update,
+                                              kms_crtc,
+                                              &page_flip_listener_vtable,
+                                              NULL,
+                                              g_object_ref (view),
+                                              g_object_unref);
     }
-
-  meta_kms_update_add_page_flip_listener (kms_update,
-                                          kms_crtc,
-                                          &page_flip_listener_vtable,
-                                          NULL,
-                                          g_object_ref (view),
-                                          g_object_unref);
   return TRUE;
 }
 
@@ -1614,7 +1640,7 @@ maybe_post_next_frame (CoglOnscreen *onscreen)
   MetaMonitorManager *monitor_manager =
     meta_backend_get_monitor_manager (backend);
   MetaOnscreenNative *onscreen_native = META_ONSCREEN_NATIVE (onscreen);
-  // ADLRTODO: handle multiple crtcs and outputs in this function
+  // `output_kms`, `kms_connector` are just used for prints, not generalizing to multiple currently.
   MetaOutputKms *output_kms = META_OUTPUT_KMS (onscreen_native->outputs->data);
   MetaKmsConnector *kms_connector =
     meta_output_kms_get_kms_connector (output_kms);
@@ -1682,7 +1708,7 @@ maybe_post_next_frame (CoglOnscreen *onscreen)
   if (!meta_onscreen_native_flip_crtc (onscreen,
                                        frame,
                                        onscreen_native->view,
-                                       onscreen_native->crtcs->data,
+                                       onscreen_native->crtcs,
                                        kms_update,
                                        flip_flags,
                                        region))
