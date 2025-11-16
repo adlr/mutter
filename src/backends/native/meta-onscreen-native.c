@@ -584,6 +584,24 @@ assign_primary_plane (MetaCrtcKms            *crtc_kms,
   return plane_assignment;
 }
 
+static void
+dump_crtc_info (MetaCrtc *crtc)
+{
+  const GList *outputs = meta_crtc_get_outputs (crtc);
+  g_warn_if_fail (outputs != NULL);
+  MetaOutput *output = outputs->data;
+  const MetaOutputInfo *output_info = meta_output_get_info (output);
+  g_warning ("Crtc %p info: lv %d, lh %d, width %d, height %d (# outputs: %d, first: %p, OI: %p)",
+            crtc,
+            output_info->tile_info.loc_v_tile,
+            output_info->tile_info.loc_h_tile,
+            output_info->tile_info.tile_w,
+            output_info->tile_info.tile_h,
+            g_list_length ((GList*)outputs),
+            (MetaOutput*)output,
+            (MetaOutputInfo*)output_info);
+}
+
 // Gets the offset and size of `crtc` if tiled
 static void
 get_tile_offset_size (MetaCrtc *crtc,
@@ -597,11 +615,14 @@ get_tile_offset_size (MetaCrtc *crtc,
   g_warn_if_fail (outputs != NULL);
   MetaOutput *output = outputs->data;
   const MetaOutputInfo *output_info = meta_output_get_info (output);
-  g_warning ("Tile info: lv %d, lh %d, width %d, height %d",
-            output_info->tile_info.loc_v_tile,
-            output_info->tile_info.loc_h_tile,
-            output_info->tile_info.tile_w,
-            output_info->tile_info.tile_h);
+  // g_warning ("Tile info: lv %d, lh %d, width %d, height %d (# outputs: %d, first: %p, OI: %p)",
+  //           output_info->tile_info.loc_v_tile,
+  //           output_info->tile_info.loc_h_tile,
+  //           output_info->tile_info.tile_w,
+  //           output_info->tile_info.tile_h,
+  //           g_list_length ((GList*)outputs),
+  //           (MetaOutput*)output,
+  //           (MetaOutputInfo*)output_info);
   int x = 0;
   int y = 0;
   int width = output_info->tile_info.tile_w;
@@ -610,18 +631,29 @@ get_tile_offset_size (MetaCrtc *crtc,
   for (t = all; t; t = t->next)
     {
       MetaCrtc *other_crtc = t->data;
+      // g_warning ("Doing an iter. crtc = %p, other = %p", crtc, other_crtc);
       if (other_crtc == crtc)
-        continue;  // Don't count self
-      const GList *other_outputs = meta_crtc_get_outputs (crtc);
+        {
+          // g_warning ("Skipping self crtc");
+          continue;  // Don't count self
+        }
+      const GList *other_outputs = meta_crtc_get_outputs (other_crtc);
+      g_warning ("other crtc has %d outputs", g_list_length ((GList*)other_outputs));
       if (other_outputs == NULL)
-        continue;  // Not sure this would ever happen, just being careful
+        {
+          g_warning ("other_outputs is unexpectedly NULL");
+          continue;  // Not sure this would ever happen, just being careful
+        }
       MetaOutput *other_output = other_outputs->data;
       const MetaOutputInfo *other_output_info = meta_output_get_info (other_output);
-      g_warning ("Other tile info: lv %d, lh %d, width %d, height %d",
-                other_output_info->tile_info.loc_v_tile,
-                other_output_info->tile_info.loc_h_tile,
-                other_output_info->tile_info.tile_w,
-                other_output_info->tile_info.tile_h);
+      // g_warning ("Other tile info: lv %d, lh %d, width %d, height %d (# outputs: %d, first: %p, OI: %p)",
+      //           other_output_info->tile_info.loc_v_tile,
+      //           other_output_info->tile_info.loc_h_tile,
+      //           other_output_info->tile_info.tile_w,
+      //           other_output_info->tile_info.tile_h,
+      //           g_list_length ((GList*)other_outputs),
+      //           (MetaOutput*)other_output,
+      //           (MetaOutputInfo*)other_output_info);
       if (output_info->tile_info.loc_v_tile == other_output_info->tile_info.loc_v_tile &&
           output_info->tile_info.loc_h_tile > other_output_info->tile_info.loc_h_tile)
         {
@@ -633,6 +665,7 @@ get_tile_offset_size (MetaCrtc *crtc,
           y += other_output_info->tile_info.tile_h;
         }
     }
+  // g_warning ("Final shape for this crtc: %d %d %d %d", x, y, width, height);
   if (out_x) *out_x = x;
   if (out_y) *out_y = y;
   if (out_width) *out_width = width;
@@ -667,6 +700,7 @@ meta_onscreen_native_flip_crtc (CoglOnscreen           *onscreen,
   // Assuming same gpu for all crtcs
   gpu_kms = META_GPU_KMS (meta_crtc_get_gpu (crtcs->data));
 
+  g_warning ("Assigning planes for %d crtcs:", g_list_length (crtcs));
   for (l = crtcs; l; l = l->next)
    {
     MetaCrtc *crtc = l->data;

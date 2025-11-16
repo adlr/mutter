@@ -251,6 +251,10 @@ static void
 update_latch_crtc (MetaKmsUpdate *update,
                    MetaKmsCrtc   *crtc)
 {
+  g_warning ("update_latch_crtc (%p, %p ID: %d), is_l: %d, lat_len: %d, first: %p",
+             update, crtc, meta_kms_crtc_get_id (crtc),
+             update->is_latchable, g_list_length (update->latch_crtcs),
+             update->latch_crtcs ? update->latch_crtcs->data : NULL);
   if (update->is_latchable)
     {
       if (!g_list_find(update->latch_crtcs, crtc))
