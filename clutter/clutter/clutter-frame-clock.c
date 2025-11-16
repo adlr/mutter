@@ -1659,9 +1659,9 @@ frame_clock_source_dispatch (GSource     *source,
   int64_t dispatch_time_us;
 
   dispatch_time_us = g_source_get_time (source);
-  g_warning("Frame clock %p tick start", frame_clock);
+  g_warning("Frame clock %s %p tick start", frame_clock->output_name, frame_clock);
   clutter_frame_clock_dispatch (frame_clock, dispatch_time_us);
-  g_warning("Frame clock %p tick end", frame_clock);
+  g_warning("Frame clock %s %p tick end", frame_clock->output_name, frame_clock);
 
   return G_SOURCE_CONTINUE;
 }
