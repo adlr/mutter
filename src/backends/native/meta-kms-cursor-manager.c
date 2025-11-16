@@ -325,20 +325,27 @@ maybe_update_cursor_plane (MetaKmsCursorManagerImpl  *cursor_manager_impl,
   graphene_rect_t cursor_rect;
   MetaKmsPlane *cursor_plane;
 
+  g_warning ("maybe_update_cursor_plane called %p", crtc);
   g_assert (old_buffer && !*old_buffer);
 
   crtc_state_impl = find_crtc_state (cursor_manager_impl, crtc);
   g_return_val_if_fail (crtc_state_impl, update);
 
   cursor_plane = crtc_state_impl->cursor_plane;
-  if (!cursor_plane)
+  if (!cursor_plane) {
+    g_warning ("maybe_update_cursor_plane: no cursor plane");
     return update;
+  }
 
-  if (!crtc_state_impl->cursor_invalidated)
+  if (!crtc_state_impl->cursor_invalidated) {
+    g_warning ("maybe_update_cursor_plane: not invalidated");
     return update;
+  }
 
-  if (!get_current_cursor_position (cursor_manager_impl, &x, &y))
+  if (!get_current_cursor_position (cursor_manager_impl, &x, &y)) {
+    g_warning ("maybe_update_cursor_plane: not getting current position");
     return update;
+  }
 
   device = meta_kms_crtc_get_device (crtc_state_impl->crtc);
   buffer = crtc_state_impl->buffer;
@@ -360,8 +367,10 @@ maybe_update_cursor_plane (MetaKmsCursorManagerImpl  *cursor_manager_impl,
   did_have_cursor = crtc_state_impl->has_cursor;
   crtc_state_impl->has_cursor = should_have_cursor;
 
-  if (!should_have_cursor && !did_have_cursor)
+  if (!should_have_cursor && !did_have_cursor) {
+    g_warning ("maybe_update_cursor_plane: don't have or need cursor");
     return update;
+  }
 
   if (!update)
     {
@@ -407,6 +416,7 @@ maybe_update_cursor_plane (MetaKmsCursorManagerImpl  *cursor_manager_impl,
         .height = (int) round (cursor_rect.size.height),
       };
 
+      g_warning ("maybe_update_cursor_plane: Doing cursor plane assignment %p", crtc);
       plane_assignment = meta_kms_update_assign_plane (update,
                                                        crtc, cursor_plane,
                                                        buffer,
@@ -422,6 +432,7 @@ maybe_update_cursor_plane (MetaKmsCursorManagerImpl  *cursor_manager_impl,
     }
   else
     {
+      g_warning ("maybe_update_cursor_plane: unassigning plane");
       *old_buffer = g_steal_pointer (&crtc_state_impl->pending_buffer);
       meta_kms_update_unassign_plane (update, crtc, cursor_plane);
     }
