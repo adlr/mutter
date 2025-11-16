@@ -2290,12 +2290,16 @@ post_nonprimary_plane_update (MetaOnscreenNative *onscreen_native,
                                        NULL);
 
   // ADLRTODO: support multiple crtcs:
-  meta_kms_update_add_page_flip_listener (kms_update,
-                                          kms_crtcs->data,
-                                          &page_flip_listener_vtable,
-                                          NULL,
-                                          g_object_ref (onscreen_native->view),
-                                          g_object_unref);
+  for (l = kms_crtcs; l; l = l->next)
+    {
+      MetaKmsCrtc *kms_crtc = l->data;
+      meta_kms_update_add_page_flip_listener (kms_update,
+                                              kms_crtc,
+                                              &page_flip_listener_vtable,
+                                              NULL,
+                                              g_object_ref (onscreen_native->view),
+                                              g_object_unref);
+    }
   // This call is okay to just take one CRTC:
   add_onscreen_frame_info (onscreen_native->crtcs->data, frame);
 
