@@ -616,6 +616,7 @@ meta_onscreen_native_flip_crtc (CoglOnscreen           *onscreen,
 
       if (scanout)
         {
+          // ADLRTODO: handle scanout with tiled display
           cogl_scanout_get_src_rect (scanout, &src_rect);
           cogl_scanout_get_dst_rect (scanout, &dst_rect);
         }
