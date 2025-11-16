@@ -1416,6 +1416,18 @@ ensure_deadline_timer_armed (MetaKmsImplDevice *impl_device,
 
       return FALSE;
     }
+  if (crtc_frame->crtcs->next)
+    {
+      int64_t next_deadline2_us;
+      int64_t next_presentation2_us;
+      g_warn_if_fail (meta_kms_crtc_determine_deadline (crtc_frame->crtcs->next->data,
+                                         &next_deadline2_us,
+                                         &next_presentation2_us,
+                                         &local_error));
+      g_warning ("Using first of deadlines: %ld %ld (second: %ld %ld)",
+                 next_deadline_us, next_presentation_us,
+                 next_deadline2_us, next_presentation2_us);
+    }
 
   arm_crtc_frame_deadline_timer (crtc_frame,
                                  next_deadline_us,
