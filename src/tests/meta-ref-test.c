@@ -150,8 +150,8 @@ capture_view (ClutterStageView *stage_view,
               gboolean          queue_damage)
 {
   MetaRendererView *view = META_RENDERER_VIEW (stage_view);
-  MetaCrtc *crtc = meta_renderer_view_get_crtc (view);
-  MetaBackend *backend = meta_crtc_get_backend (crtc);
+  MetaRenderTarget *render_target = meta_renderer_view_get_render_target (view);
+  MetaBackend *backend = meta_render_target_get_backend (render_target);
   MetaStage *stage = META_STAGE (meta_backend_get_stage (backend));
   MetaContext *context = meta_backend_get_context (backend);
   MetaDisplay *display = meta_context_get_display (context);
@@ -202,8 +202,8 @@ static void
 assert_software_rendered (ClutterStageView *stage_view)
 {
   MetaRendererView *view = META_RENDERER_VIEW (stage_view);
-  MetaCrtc *crtc = meta_renderer_view_get_crtc (view);
-  MetaBackend *backend = meta_crtc_get_backend (crtc);
+  MetaRenderTarget *render_target = meta_renderer_view_get_render_target (view);
+  MetaBackend *backend = meta_render_target_get_backend (render_target);
 
   g_assert_false (meta_backend_is_rendering_hardware_accelerated (backend));
 }
