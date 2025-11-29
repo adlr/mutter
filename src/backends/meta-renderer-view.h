@@ -18,6 +18,7 @@
 #pragma once
 
 #include "backends/meta-monitor-manager-private.h"
+#include "backends/meta-render-target.h"
 #include "backends/meta-stage-impl-private.h"
 #include "backends/meta-stage-view-private.h"
 
@@ -33,4 +34,4 @@ struct _MetaRendererViewClass
 };
 
 META_EXPORT_TEST
-MetaCrtc *meta_renderer_view_get_crtc (MetaRendererView *view);
+MetaRenderTarget *meta_renderer_view_get_render_target (MetaRendererView *view);

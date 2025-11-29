@@ -203,7 +203,7 @@ meta_renderer_get_view_for_crtc (MetaRenderer *renderer,
     {
       MetaRendererView *view = l->data;
 
-      if (meta_renderer_view_get_crtc (view) == crtc)
+      if (meta_render_target_has_crtc (meta_renderer_view_get_render_target (view), crtc))
         return view;
     }
 

@@ -48,3 +48,11 @@ meta_render_target_native_get_kms_crtcs (MetaRenderTarget *render_target)
     }
   return ret;
 }
+
+int64_t
+meta_render_target_native_get_deadline_evasion (MetaRenderTarget *render_target)
+{
+  MetaCrtc *primary_crtc = meta_render_target_get_primary_crtc (render_target);
+
+  return meta_crtc_native_get_deadline_evasion (META_CRTC_NATIVE (primary_crtc));
+}
