@@ -44,6 +44,12 @@ struct _MetaRenderTarget
 
 G_DEFINE_TYPE (MetaRenderTarget, meta_render_target, G_TYPE_OBJECT)
 
+MetaRenderTarget *
+meta_render_target_new (void)
+{
+  return g_object_new (META_TYPE_RENDER_TARGET, NULL);
+}
+
 void
 meta_render_target_add (MetaRenderTarget *render_target,
                         MetaCrtc         *crtc,
@@ -72,6 +78,13 @@ meta_render_target_get_name (MetaRenderTarget *render_target)
 {
   MetaOutput *primary_output = meta_render_target_get_primary_output (render_target);
   return meta_output_get_name (primary_output);
+}
+
+gboolean
+meta_render_target_has_crtc (MetaRenderTarget *render_target,
+                             MetaCrtc         *crtc)
+{
+  return g_ptr_array_find (render_target->crtcs, crtc, NULL);
 }
 
 GPtrArray *
@@ -113,6 +126,12 @@ MetaGpu *
 meta_render_target_get_gpu (MetaRenderTarget *render_target)
 {
   return meta_crtc_get_gpu (meta_render_target_get_primary_crtc (render_target));
+}
+
+MetaBackend *
+meta_render_target_get_backend (MetaRenderTarget *render_target)
+{
+  return meta_crtc_get_backend (meta_render_target_get_primary_crtc (render_target));
 }
 
 static void

@@ -797,10 +797,10 @@ free_unused_gpu_datas (MetaRendererNative *renderer_native)
   for (l = meta_renderer_get_views (renderer); l; l = l->next)
     {
       MetaRendererView *view = l->data;
-      MetaCrtc *crtc = meta_renderer_view_get_crtc (view);
+      MetaRenderTarget *render_target = meta_renderer_view_get_render_target (view);
       MetaGpu *gpu;
 
-      gpu = meta_crtc_get_gpu (crtc);
+      gpu = meta_render_target_get_gpu (render_target);
       if (!gpu)
         continue;
 
@@ -1430,6 +1430,9 @@ meta_renderer_native_create_view (MetaRenderer        *renderer,
   MetaRendererViewNative *view_native;
   EGLSurface egl_surface;
   GError *local_error = NULL;
+  // ADLRTODO: don't leak render_target here. Instead, receive it as argument to this function.
+  MetaRenderTarget *render_target = meta_render_target_new ();
+  meta_render_target_add (render_target, crtc, output);
 
   crtc_config = meta_crtc_get_config (crtc);
   crtc_mode_info = meta_crtc_mode_get_info (crtc_config->mode);
@@ -1514,7 +1517,7 @@ meta_renderer_native_create_view (MetaRenderer        *renderer,
                               "color-device", color_device,
                               "stage", meta_backend_get_stage (backend),
                               "layout", &view_layout,
-                              "crtc", crtc,
+                              "render-target", render_target,
                               "scale", scale,
                               "framebuffer", framebuffer,
                               "use-shadowfb", use_shadowfb,
