@@ -23,6 +23,12 @@
 #include "backends/native/meta-crtc-kms.h"
 #include "backends/native/meta-kms-crtc.h"
 
+MetaCrtcKms *
+meta_render_target_native_get_primary_crtc_kms (MetaRenderTarget *render_target)
+{
+  return META_CRTC_KMS (meta_render_target_get_primary_crtc (render_target));
+}
+
 GPtrArray *
 meta_render_target_native_get_crtc_kmses (MetaRenderTarget *render_target)
 {
