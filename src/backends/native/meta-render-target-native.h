@@ -26,6 +26,10 @@
 #include <glib-object.h>
 
 #include "backends/meta-render-target.h"
+#include "backends/native/meta-crtc-kms.h"
+
+MetaCrtcKms *
+meta_render_target_native_get_primary_crtc_kms (MetaRenderTarget *render_target);
 
 /* Caller takes ownership of return value */
 GPtrArray *  /* of type MetaCrtcKms * */
@@ -36,3 +40,11 @@ GPtrArray *  /* of type MetaKmsCrtc * */
 meta_render_target_native_get_kms_crtcs (MetaRenderTarget *render_target);
 
 int64_t meta_render_target_native_get_deadline_evasion (MetaRenderTarget *render_target);
+
+#define meta_render_target_native_foreach_crtc_kms(crtc_kms_decl, render_target) \
+  for (guint keep = 1, \
+       count = 0, \
+       size = meta_render_target_get_crtcs (render_target)->len; \
+       keep && count != size; \
+       keep = !keep, count++) \
+    for(crtc_kms_decl = META_CRTC_KMS (g_ptr_array_index (meta_render_target_get_crtcs (render_target), count)); keep; keep = !keep)
