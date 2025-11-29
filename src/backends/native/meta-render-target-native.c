@@ -48,3 +48,18 @@ meta_render_target_native_get_kms_crtcs (MetaRenderTarget *render_target)
     }
   return ret;
 }
+
+int64_t
+meta_render_target_native_get_deadline_evasion (MetaRenderTarget *render_target)
+{
+  int64_t deadline_evasion_us = INT64_MIN;
+  GPtrArray *crtcs = meta_render_target_get_crtcs (render_target);
+  for (guint i = 0; i < crtcs->len; i++)
+    {
+      MetaCrtc *crtc = g_ptr_array_index (crtcs, i);
+      MetaCrtcNative *crtc_native = META_CRTC_NATIVE (crtc);
+      deadline_evasion_us = MAX (deadline_evasion_us,
+                                 meta_crtc_native_get_deadline_evasion (crtc_native));
+    }
+  return deadline_evasion_us;
+}

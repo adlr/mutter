@@ -297,7 +297,7 @@ find_scanout_candidate (MetaCompositorView  *compositor_view,
       return FALSE;
     }
 
-  crtc = meta_renderer_view_get_crtc (renderer_view);
+  crtc = meta_render_target_get_primary_crtc (meta_renderer_view_get_render_target (renderer_view));
   if (!META_IS_CRTC_KMS (crtc))
     {
       meta_topic (META_DEBUG_RENDER,

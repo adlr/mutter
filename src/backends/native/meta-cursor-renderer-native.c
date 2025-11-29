@@ -388,7 +388,8 @@ meta_cursor_renderer_native_update_cursor (MetaCursorRenderer *cursor_renderer,
     {
       MetaStageView *view = l->data;
       MetaRendererView *renderer_view = META_RENDERER_VIEW (view);
-      MetaCrtc *crtc = meta_renderer_view_get_crtc (renderer_view);
+      MetaRenderTarget *render_target = meta_renderer_view_get_render_target (renderer_view);
+      MetaCrtc *crtc = meta_render_target_get_primary_crtc (render_target);
       MetaCrtcNative *crtc_native = META_CRTC_NATIVE (crtc);
       MetaGpu *gpu = meta_crtc_get_gpu (crtc);
       ClutterColorState *target_color_state =

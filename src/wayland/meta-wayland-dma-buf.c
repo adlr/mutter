@@ -665,6 +665,7 @@ meta_wayland_dma_buf_try_acquire_scanout (MetaWaylandBuffer     *buffer,
 #ifdef HAVE_NATIVE_BACKEND
   MetaWaylandDmaBufBuffer *dma_buf;
   MetaRendererView *renderer_view = META_RENDERER_VIEW (stage_view);
+  MetaRenderTarget *render_target;
   MetaCrtc *crtc;
   MetaCrtcKms *crtc_kms;
   MetaContext *context;
@@ -687,7 +688,8 @@ meta_wayland_dma_buf_try_acquire_scanout (MetaWaylandBuffer     *buffer,
   if (!dma_buf)
     return NULL;
 
-  crtc = meta_renderer_view_get_crtc (renderer_view);
+  render_target = meta_renderer_view_get_render_target (renderer_view);
+  crtc = meta_render_target_get_primary_crtc (render_target);
   g_return_val_if_fail (META_IS_CRTC_KMS (crtc), NULL);
   crtc_kms = META_CRTC_KMS (crtc);
 

@@ -127,15 +127,16 @@ meta_stage_native_redraw_view (ClutterStageWindow *stage_window,
   MetaStageImpl *stage_impl = META_STAGE_IMPL (stage_window);
   MetaBackend *backend = meta_stage_impl_get_backend (stage_impl);
   MetaRenderer *renderer = meta_backend_get_renderer (backend);
+  MetaRenderTarget *render_target = meta_renderer_view_get_render_target (META_RENDERER_VIEW (view));
   MetaCrtc *crtc;
 
   meta_renderer_native_before_redraw (META_RENDERER_NATIVE (renderer),
                                       META_RENDERER_VIEW (view), frame);
 
   CLUTTER_STAGE_WINDOW_CLASS (meta_stage_native_parent_class)->
-      redraw_view (stage_window, view, frame);
+  redraw_view (stage_window, view, frame);
 
-  crtc = meta_renderer_view_get_crtc (META_RENDERER_VIEW (view));
+  crtc = meta_render_target_get_primary_crtc (render_target);
 
   if (!clutter_frame_has_result (frame))
     {

@@ -34,3 +34,5 @@ meta_render_target_native_get_crtc_kmses (MetaRenderTarget *render_target);
 /* Caller takes ownership of return value */
 GPtrArray *  /* of type MetaKmsCrtc * */
 meta_render_target_native_get_kms_crtcs (MetaRenderTarget *render_target);
+
+int64_t meta_render_target_native_get_deadline_evasion (MetaRenderTarget *render_target);
