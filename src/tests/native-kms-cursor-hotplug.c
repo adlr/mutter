@@ -176,8 +176,8 @@ meta_test_hotplug_multi_view_invalidation (void)
 
   meta_monitor_manager_reload (monitor_manager);
   views = meta_renderer_get_views (renderer);
-  g_assert_true (META_IS_CRTC_KMS (meta_renderer_view_get_crtc (views->data)));
-  g_assert_true (META_IS_CRTC_VIRTUAL (meta_renderer_view_get_crtc (views->next->data)));
+  g_assert_true (META_IS_CRTC_KMS (meta_render_target_get_primary_crtc (meta_renderer_view_get_render_target (views->data))));
+  g_assert_true (META_IS_CRTC_VIRTUAL (meta_render_target_get_primary_crtc (meta_renderer_view_get_render_target (views->next->data))));
 
   meta_wait_for_presented (test_context);
 
@@ -197,8 +197,8 @@ meta_test_hotplug_multi_view_invalidation (void)
                                        META_MONITORS_CONFIG_FLAG_NONE);
   meta_monitor_manager_reload (monitor_manager);
   views = meta_renderer_get_views (renderer);
-  g_assert_true (META_IS_CRTC_KMS (meta_renderer_view_get_crtc (views->data)));
-  g_assert_true (META_IS_CRTC_VIRTUAL (meta_renderer_view_get_crtc (views->next->data)));
+  g_assert_true (META_IS_CRTC_KMS (meta_render_target_get_primary_crtc (meta_renderer_view_get_render_target (views->data))));
+  g_assert_true (META_IS_CRTC_VIRTUAL (meta_render_target_get_primary_crtc (meta_renderer_view_get_render_target (views->next->data))));
   g_assert_true (image_changed);
 
   g_signal_handler_disconnect (cursor, texture_changed_handler_id);
@@ -293,8 +293,8 @@ meta_test_cursor_overlay_visible_per_view (void)
   meta_monitor_manager_reload (monitor_manager);
 
   views = meta_renderer_get_views (renderer);
-  g_assert_true (META_IS_CRTC_KMS (meta_renderer_view_get_crtc (views->data)));
-  g_assert_true (META_IS_CRTC_VIRTUAL (meta_renderer_view_get_crtc (views->next->data)));
+  g_assert_true (META_IS_CRTC_KMS (meta_render_target_get_primary_crtc (meta_renderer_view_get_render_target (views->data))));
+  g_assert_true (META_IS_CRTC_VIRTUAL (meta_render_target_get_primary_crtc (meta_renderer_view_get_render_target (views->next->data))));
   kms_view = CLUTTER_STAGE_VIEW (views->data);
   virtual_view = CLUTTER_STAGE_VIEW (views->next->data);
   clutter_stage_view_get_layout (virtual_view, &virtual_layout);
