@@ -43,3 +43,6 @@ GPtrArray * meta_render_target_get_crtcs (MetaRenderTarget *render_target);
 GPtrArray * meta_render_target_get_outputs (MetaRenderTarget *render_target);
 MtkRectangle meta_render_target_get_view_layout (MetaRenderTarget *render_target);
 MetaGpu * meta_render_target_get_gpu (MetaRenderTarget *render_target);
+
+META_EXPORT_TEST
+MetaBackend * meta_render_target_get_backend (MetaRenderTarget *render_target);

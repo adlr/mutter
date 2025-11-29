@@ -26,6 +26,7 @@
 
 #include "backends/native/meta-crtc-native.h"
 #include "backends/native/meta-frame-native.h"
+#include "backends/native/meta-render-target-native.h"
 
 struct _MetaRendererViewNative
 {
@@ -40,15 +41,13 @@ update_frame_clock_deadline_evasion (MetaRendererView *renderer_view)
 {
   ClutterStageView *stage_view = CLUTTER_STAGE_VIEW (renderer_view);
   ClutterFrameClock *frame_clock;
-  MetaCrtc *crtc;
-  MetaCrtcNative *crtc_native;
+  MetaRenderTarget *render_target;
   int64_t deadline_evasion_us;
 
   frame_clock = clutter_stage_view_get_frame_clock (stage_view);
-  crtc = meta_renderer_view_get_crtc (renderer_view);
-  crtc_native = META_CRTC_NATIVE (crtc);
+  render_target = meta_renderer_view_get_render_target (renderer_view);
 
-  deadline_evasion_us = meta_crtc_native_get_deadline_evasion (crtc_native);
+  deadline_evasion_us = meta_render_target_native_get_deadline_evasion (render_target);
   clutter_frame_clock_set_deadline_evasion (frame_clock,
                                             deadline_evasion_us);
 }
