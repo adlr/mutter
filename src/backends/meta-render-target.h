@@ -56,3 +56,34 @@ MetaGpu * meta_render_target_get_gpu (MetaRenderTarget *render_target);
 
 META_EXPORT_TEST
 MetaBackend * meta_render_target_get_backend (MetaRenderTarget *render_target);
+
+/* Clobbers `crtc`, which must be of type `MetaCrtc *`. */
+#define META_RENDER_TARGET_FOREACH_CRTC(render_target, crtc)    \
+  for (unsigned int G_PASTE (__i, __LINE__) = 0; \
+       G_PASTE (__i, __LINE__) < \
+         meta_render_target_get_crtcs (render_target)->len && \
+       ((crtc) = g_ptr_array_index (meta_render_target_get_crtcs (render_target), \
+                                    G_PASTE (__i, __LINE__)), TRUE); \
+       G_PASTE (__i, __LINE__)++)
+
+/* Clobbers `output`, which must be of type `MetaOutput *`. */
+#define META_RENDER_TARGET_FOREACH_OUTPUT(render_target, output) \
+  for (unsigned int G_PASTE (__i, __LINE__) = 0; \
+       G_PASTE (__i, __LINE__) < \
+         meta_render_target_get_outputs (render_target)->len && \
+       ((output) = g_ptr_array_index (meta_render_target_get_outputs (render_target), \
+                                      G_PASTE (__i, __LINE__)), TRUE); \
+       G_PASTE (__i, __LINE__)++)
+
+/* Clobbers `output`, which must be of type `MetaOutput *`, and
+ * `crtc`, which must be of type `MetaCrtc *`.
+ */
+#define META_RENDER_TARGET_FOREACH_FULL(render_target, output, crtc) \
+  for (unsigned int G_PASTE (__i, __LINE__) = 0; \
+       G_PASTE (__i, __LINE__) < \
+         meta_render_target_get_crtcs (render_target)->len && \
+       ((output) = g_ptr_array_index (meta_render_target_get_outputs (render_target), \
+                                      G_PASTE (__i, __LINE__)), \
+        (crtc) = g_ptr_array_index (meta_render_target_get_crtcs (render_target), \
+                                    G_PASTE (__i, __LINE__)), TRUE); \
+       G_PASTE (__i, __LINE__)++)
