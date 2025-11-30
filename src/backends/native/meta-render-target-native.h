@@ -39,9 +39,16 @@ MetaKmsDevice * meta_render_target_native_get_kms_device (MetaRenderTarget *rend
 GPtrArray *  /* of type MetaCrtcKms * */
 meta_render_target_native_get_crtc_kmses (MetaRenderTarget *render_target);
 
+typedef GPtrArray MetaKmsCrtcPtrArray;  /* GPtrArray of MetaKmsCrtc *, must have at least 1 element */
+
 /* Caller takes ownership of return value */
-GPtrArray *  /* of type MetaKmsCrtc * */
-meta_render_target_native_get_kms_crtcs (MetaRenderTarget *render_target);
+MetaKmsCrtcPtrArray *
+meta_render_target_native_get_kms_crtc_array (MetaRenderTarget *render_target);
+#define meta_crtc_kms_ptr_array_get_primary(arr) \
+  ((MetaKmsCrtc *) g_ptr_array_index (arr, 0))
+#define meta_crtc_kms_ptr_array_get_device(arr) \
+  ((MetaKmsDevice *) meta_kms_crtc_get_device (meta_crtc_kms_ptr_array_get_primary (arr)))
+int64_t meta_crtc_kms_ptr_array_get_deadline_evasion (MetaKmsCrtcPtrArray * arr);
 
 int64_t meta_render_target_native_get_deadline_evasion (MetaRenderTarget *render_target);
 
@@ -68,3 +75,11 @@ int64_t meta_render_target_native_get_deadline_evasion (MetaRenderTarget *render
        count__ < size__; \
        toggle__ = 1, count__++) \
     for (kms_crtc_decl = meta_crtc_kms_get_kms_crtc (META_CRTC_KMS (g_ptr_array_index (meta_render_target_get_crtcs (render_target), count__))); toggle__; toggle__ = 0)
+
+#define meta_kms_crtc_ptr_array_foreach(kms_crtc_decl, arr) \
+  for (guint toggle__ = 1, \
+       count__ = 0, \
+       size__ = arr->len; \
+       count__ < size__; \
+       toggle__ = 1, count__++) \
+    for (kms_crtc_decl = g_ptr_array_index (arr, count__); toggle__; toggle__ = 0)
