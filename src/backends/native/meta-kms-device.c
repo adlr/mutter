@@ -411,13 +411,16 @@ meta_kms_device_set_needs_flush (MetaKmsDevice *device,
 }
 
 gboolean
-meta_kms_device_handle_flush (MetaKmsDevice *device,
-                              MetaKmsCrtc   *crtc)
+meta_kms_device_handle_flush (MetaKmsDevice       *device,
+                              MetaKmsCrtcPtrArray *crtcs)
 {
-  gboolean needs_flush;
+  gboolean needs_flush = false;
 
   g_mutex_lock (&device->needs_flush_mutex);
-  needs_flush = g_hash_table_remove (device->needs_flush_crtcs, crtc);
+  meta_kms_crtc_ptr_array_foreach (MetaKmsCrtc * crtc, crtcs)
+  {
+    needs_flush |= g_hash_table_remove (device->needs_flush_crtcs, crtc);
+  }
   g_mutex_unlock (&device->needs_flush_mutex);
 
   return needs_flush;

@@ -607,8 +607,9 @@ schedule_process_in_impl (MetaThreadImpl  *thread_impl,
   MetaKmsCrtc *crtc = META_KMS_CRTC (user_data);
   MetaKmsDevice *device = meta_kms_crtc_get_device (crtc);
   MetaKmsImplDevice *impl_device = meta_kms_device_get_impl_device (device);
+  g_autoptr (GPtrArray) crtcs = g_ptr_array_new_from_array ((void**) &crtc, 1, NULL, NULL, NULL);
 
-  meta_kms_impl_device_schedule_process (impl_device, crtc);
+  meta_kms_impl_device_schedule_process (impl_device, crtcs);
 
   return NULL;
 }

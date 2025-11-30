@@ -60,7 +60,7 @@ meta_render_target_native_get_crtc_kmses (MetaRenderTarget *render_target)
 }
 
 GPtrArray *
-meta_render_target_native_get_kms_crtcs (MetaRenderTarget *render_target)
+meta_render_target_native_get_kms_crtc_array (MetaRenderTarget *render_target)
 {
   GPtrArray *crtcs = meta_render_target_get_crtcs (render_target);
   GPtrArray *ret = g_ptr_array_new_full (crtcs->len, g_object_unref);
@@ -68,6 +68,17 @@ meta_render_target_native_get_kms_crtcs (MetaRenderTarget *render_target)
     {
       g_ptr_array_add (ret, g_object_ref (meta_crtc_kms_get_kms_crtc (META_CRTC_KMS (g_ptr_array_index (crtcs, i)))));
     }
+  return ret;
+}
+
+int64_t
+meta_crtc_kms_ptr_array_get_deadline_evasion (MetaKmsCrtcPtrArray *arr)
+{
+  int64_t ret = INT64_MIN;
+  meta_kms_crtc_ptr_array_foreach (MetaKmsCrtc * kms_crtc, arr)
+  {
+    ret = MAX (ret, meta_kms_crtc_get_deadline_evasion (kms_crtc));
+  }
   return ret;
 }
 
