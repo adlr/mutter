@@ -20,6 +20,7 @@
 #include <glib-object.h>
 
 #include "backends/native/meta-kms-types.h"
+#include "backends/native/meta-render-target-native.h"
 #include "core/util-private.h"
 
 #define META_TYPE_KMS_DEVICE (meta_kms_device_get_type ())
@@ -80,8 +81,8 @@ META_EXPORT_TEST
 void meta_kms_device_await_flush (MetaKmsDevice *device,
                                   MetaKmsCrtc   *crtc);
 
-gboolean meta_kms_device_handle_flush (MetaKmsDevice *device,
-                                       MetaKmsCrtc   *crtc);
+gboolean meta_kms_device_handle_flush (MetaKmsDevice       *device,
+                                       MetaKmsCrtcPtrArray *crtc);
 
 META_EXPORT_TEST
 void meta_kms_device_disable (MetaKmsDevice *device);
