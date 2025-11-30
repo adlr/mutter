@@ -25,6 +25,7 @@
 #include "backends/meta-output.h"
 #include "backends/native/meta-drm-buffer.h"
 #include "backends/native/meta-kms-types.h"
+#include "backends/meta-render-target.h"
 #include "meta/boxes.h"
 #include "mtk/mtk.h"
 
@@ -106,8 +107,11 @@ MetaKmsUpdate * meta_kms_update_new (MetaKmsDevice *device);
 META_EXPORT_TEST
 void meta_kms_update_free (MetaKmsUpdate *update);
 
-void meta_kms_update_set_flushing (MetaKmsUpdate *update,
-                                   MetaKmsCrtc   *crtc);
+void meta_kms_update_set_flushing_one (MetaKmsUpdate    *update,
+                                       MetaKmsCrtc      *kms_crtc);
+
+void meta_kms_update_set_flushing (MetaKmsUpdate    *update,
+                                   MetaRenderTarget *render_target);
 
 META_EXPORT_TEST
 MetaKmsDevice * meta_kms_update_get_device (MetaKmsUpdate *update);
