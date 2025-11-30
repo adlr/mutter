@@ -61,7 +61,7 @@ meta_render_target_native_get_crtc_kmses (MetaRenderTarget *render_target)
 }
 
 GPtrArray *
-meta_render_target_native_get_kms_crtcs (MetaRenderTarget *render_target)
+meta_render_target_native_get_kms_crtc_array (MetaRenderTarget *render_target)
 {
   GPtrArray *crtcs = meta_render_target_get_crtcs (render_target);
   GPtrArray *ret = g_ptr_array_new_full (crtcs->len, NULL);
