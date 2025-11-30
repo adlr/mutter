@@ -23,23 +23,14 @@
 #include "backends/native/meta-crtc-kms.h"
 #include "backends/native/meta-kms-crtc.h"
 
-MetaCrtcKms *
-meta_render_target_native_get_primary_crtc_kms (MetaRenderTarget *render_target)
+MetaKmsDevice *
+meta_render_target_native_get_kms_device (MetaRenderTarget *render_target)
 {
-  return META_CRTC_KMS (meta_render_target_get_primary_crtc (render_target));
-}
+  MetaCrtc *primary_crtc = meta_render_target_get_primary_crtc (render_target);
+  MetaKmsCrtc *kms_crtc =
+    meta_crtc_kms_get_kms_crtc (META_CRTC_KMS (primary_crtc));
 
-GPtrArray *
-meta_render_target_native_get_crtc_kmses (MetaRenderTarget *render_target)
-{
-  GPtrArray *crtcs = meta_render_target_get_crtcs (render_target);
-  GPtrArray *ret = g_ptr_array_new_full (crtcs->len, NULL);
-
-  for (guint i = 0; i < crtcs->len; i++)
-    {
-      g_ptr_array_add (ret, META_CRTC_KMS (g_ptr_array_index (crtcs, i)));
-    }
-  return ret;
+  return meta_kms_crtc_get_device (kms_crtc);
 }
 
 GPtrArray *

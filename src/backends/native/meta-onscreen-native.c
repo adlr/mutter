@@ -47,6 +47,7 @@
 #include "backends/native/meta-output-kms.h"
 #include "backends/native/meta-render-device-gbm.h"
 #include "backends/native/meta-render-device.h"
+#include "backends/native/meta-render-target-native.h"
 #include "backends/native/meta-renderer-egl.h"
 #include "backends/native/meta-renderer-native-gles3.h"
 #include "backends/native/meta-renderer-native-private.h"
@@ -125,8 +126,7 @@ struct _MetaOnscreenNative
 
   MetaRendererNative *renderer_native;
   MetaGpuKms *render_gpu;
-  MetaOutput *output;
-  MetaCrtc *crtc;
+  MetaRenderTarget *render_target;
 
   MetaOnscreenNativeSecondaryGpuState *secondary_gpu_state;
 
@@ -729,90 +729,116 @@ assign_primary_plane (MetaCrtcKms            *crtc_kms,
   return plane_assignment;
 }
 
+static MetaKmsCrtc *
+get_primary_kms_crtc (MetaRenderTarget *render_target)
+{
+  MetaCrtc *primary_crtc = meta_render_target_get_primary_crtc (render_target);
+
+  return meta_crtc_kms_get_kms_crtc (META_CRTC_KMS (primary_crtc));
+}
+
 static gboolean
-meta_onscreen_native_flip_crtc (CoglOnscreen           *onscreen,
-                                ClutterFrame           *frame,
-                                MetaRendererView       *view,
-                                MetaCrtc               *crtc,
-                                MetaKmsUpdate          *kms_update,
-                                MetaKmsAssignPlaneFlag  flags,
-                                const MtkRegion        *region)
+meta_onscreen_native_flip_render_target (CoglOnscreen           *onscreen,
+                                         ClutterFrame           *frame,
+                                         MetaRendererView       *view,
+                                         MetaRenderTarget       *render_target,
+                                         MetaKmsUpdate          *kms_update,
+                                         MetaKmsAssignPlaneFlag  flags,
+                                         const MtkRegion        *region)
 {
   MetaOnscreenNative *onscreen_native = META_ONSCREEN_NATIVE (onscreen);
-  MetaRendererNative *renderer_native = onscreen_native->renderer_native;
-  MetaFrameNative *frame_native;
-  MetaGpuKms *render_gpu = onscreen_native->render_gpu;
-  MetaCrtcKms *crtc_kms = META_CRTC_KMS (crtc);
-  MetaKmsCrtc *kms_crtc = meta_crtc_kms_get_kms_crtc (crtc_kms);
-  MetaRendererNativeGpuData *renderer_gpu_data;
-#ifndef G_DISABLE_ASSERT
-  MetaGpuKms *gpu_kms;
-#endif
-  MetaDrmBuffer *buffer;
-  CoglScanout *scanout;
-  MetaKmsPlaneAssignment *plane_assignment;
-  graphene_rect_t src_rect;
-  MtkRectangle dst_rect;
+  MetaFrameNative *frame_native = meta_frame_native_from_frame (frame);
+  MetaDrmBuffer *buffer = meta_frame_native_get_buffer (frame_native);
+  MtkMonitorTransform transform =
+    clutter_stage_view_get_transform (CLUTTER_STAGE_VIEW (view));
+  MetaOutput *output;
+  MetaCrtc *crtc;
 
-  COGL_TRACE_BEGIN_SCOPED (MetaOnscreenNativeFlipCrtcs,
-                           "Meta::OnscreenNative::flip_crtc()");
+  COGL_TRACE_BEGIN_SCOPED (MetaOnscreenNativeFlipRenderTarget,
+                           "Meta::OnscreenNative::flip_render_target()");
 
-#ifndef G_DISABLE_ASSERT
-  gpu_kms = META_GPU_KMS (meta_crtc_get_gpu (crtc));
+  if (!buffer)
+    return FALSE;
 
-  g_assert (meta_gpu_kms_is_crtc_active (gpu_kms, crtc));
-#endif
-
-  renderer_gpu_data = meta_renderer_native_get_gpu_data (renderer_native,
-                                                         render_gpu);
-  switch (renderer_gpu_data->mode)
+  META_RENDER_TARGET_FOREACH_FULL (render_target, output, crtc)
     {
-    case META_RENDERER_NATIVE_MODE_GBM:
-      frame_native = meta_frame_native_from_frame (frame);
-      buffer = meta_frame_native_get_buffer (frame_native);
-      if (!buffer)
-        return FALSE;
+      MtkRectangle output_tile_rect =
+        meta_render_target_get_output_tile_rect (render_target, output,
+                                                 transform == MTK_MONITOR_TRANSFORM_NORMAL);
+      MetaRendererNative *renderer_native = onscreen_native->renderer_native;
+      MetaGpuKms *render_gpu = onscreen_native->render_gpu;
+      MetaCrtcKms *crtc_kms = META_CRTC_KMS (crtc);
+      MetaRendererNativeGpuData *renderer_gpu_data;
+#ifndef G_DISABLE_ASSERT
+      MetaGpuKms *gpu_kms;
+#endif
+      CoglScanout *scanout;
+      MetaKmsPlaneAssignment *plane_assignment;
+      graphene_rect_t src_rect;
+      MtkRectangle dst_rect;
 
-      scanout = meta_frame_native_get_scanout (frame_native);
+#ifndef G_DISABLE_ASSERT
+      gpu_kms = META_GPU_KMS (meta_crtc_get_gpu (crtc));
 
-      if (scanout)
+      g_assert (meta_gpu_kms_is_crtc_active (gpu_kms, crtc));
+#endif
+
+      renderer_gpu_data = meta_renderer_native_get_gpu_data (renderer_native,
+                                                             render_gpu);
+      switch (renderer_gpu_data->mode)
         {
-          cogl_scanout_get_src_rect (scanout, &src_rect);
-          cogl_scanout_get_dst_rect (scanout, &dst_rect);
-        }
-      else
-        {
-          src_rect = (graphene_rect_t) {
-            .origin.x = 0,
-            .origin.y = 0,
-            .size.width = meta_drm_buffer_get_width (buffer),
-            .size.height = meta_drm_buffer_get_height (buffer)
-          };
-          dst_rect = (MtkRectangle) {
-            .x = 0,
-            .y = 0,
-            .width = meta_drm_buffer_get_width (buffer),
-            .height = meta_drm_buffer_get_height (buffer)
-          };
-        }
+        case META_RENDERER_NATIVE_MODE_GBM:
+          scanout = meta_frame_native_get_scanout (frame_native);
 
-      plane_assignment = assign_primary_plane (crtc_kms,
-                                               buffer,
-                                               kms_update,
-                                               flags,
-                                               &src_rect,
-                                               &dst_rect);
+          if (scanout)
+            {
+              cogl_scanout_get_src_rect (scanout, &src_rect);
+              cogl_scanout_get_dst_rect (scanout, &dst_rect);
+              /* If tiled display, get just the tile */
+              if (dst_rect.width > output_tile_rect.width || dst_rect.height > output_tile_rect.height)
+                {
+                  src_rect.origin.x += output_tile_rect.x;
+                  src_rect.origin.y += output_tile_rect.y;
+                  src_rect.size.width = output_tile_rect.width;
+                  src_rect.size.height = output_tile_rect.height;
+                  dst_rect.width = output_tile_rect.width;
+                  dst_rect.height = output_tile_rect.height;
+                }
+            }
+          else
+            {
+              src_rect = (graphene_rect_t) {
+                .origin.x = output_tile_rect.x,
+                .origin.y = output_tile_rect.y,
+                .size.width = output_tile_rect.width,
+                .size.height = output_tile_rect.height
+              };
+              dst_rect = (MtkRectangle) {
+                .x = 0,
+                .y = 0,
+                .width = output_tile_rect.width,
+                .height = output_tile_rect.height
+              };
+            }
 
-      if (region && !mtk_region_is_empty (region))
-        meta_kms_plane_assignment_set_fb_damage (plane_assignment, region);
-      break;
-    case META_RENDERER_NATIVE_MODE_SURFACELESS:
-      g_assert_not_reached ();
-      break;
+          plane_assignment = assign_primary_plane (crtc_kms,
+                                                   buffer,
+                                                   kms_update,
+                                                   flags,
+                                                   &src_rect,
+                                                   &dst_rect);
+
+          if (region && !mtk_region_is_empty (region))
+            meta_kms_plane_assignment_set_fb_damage (plane_assignment, region);
+          break;
+        case META_RENDERER_NATIVE_MODE_SURFACELESS:
+          g_assert_not_reached ();
+          break;
+        }
     }
 
   meta_kms_update_add_page_flip_listener (kms_update,
-                                          kms_crtc,
+                                          get_primary_kms_crtc (render_target),
                                           &page_flip_listener_vtable,
                                           NULL,
                                           clutter_frame_ref (frame),
@@ -941,7 +967,8 @@ meta_onscreen_native_set_crtc_mode (CoglOnscreen              *onscreen,
                                     MetaRendererNativeGpuData *renderer_gpu_data)
 {
   MetaOnscreenNative *onscreen_native = META_ONSCREEN_NATIVE (onscreen);
-  MetaCrtcKms *crtc_kms = META_CRTC_KMS (onscreen_native->crtc);
+  MetaOutput *output;
+  MetaCrtc *crtc;
 
   COGL_TRACE_BEGIN_SCOPED (MetaOnscreenNativeSetCrtcModes,
                            "Meta::OnscreenNative::set_crtc_mode()");
@@ -955,11 +982,17 @@ meta_onscreen_native_set_crtc_mode (CoglOnscreen              *onscreen,
       break;
     }
 
-  meta_crtc_kms_set_mode (crtc_kms, kms_update);
-  set_underscan (META_OUTPUT_KMS (onscreen_native->output), kms_update);
-  set_max_bpc (META_OUTPUT_KMS (onscreen_native->output), kms_update);
-  set_rgb_range (META_OUTPUT_KMS (onscreen_native->output), kms_update);
-  set_color_mode (META_OUTPUT_KMS (onscreen_native->output), kms_update);
+  META_RENDER_TARGET_FOREACH_FULL (onscreen_native->render_target, output, crtc)
+    {
+      MetaOutputKms *output_kms = META_OUTPUT_KMS (output);
+
+      meta_crtc_kms_set_mode (META_CRTC_KMS (crtc), kms_update);
+
+      set_underscan (output_kms, kms_update);
+      set_max_bpc (output_kms, kms_update);
+      set_rgb_range (output_kms, kms_update);
+      set_color_mode (output_kms, kms_update);
+    }
 }
 
 static void
@@ -1896,11 +1929,12 @@ maybe_post_next_frame (CoglOnscreen *onscreen)
   MetaMonitorManager *monitor_manager =
     meta_backend_get_monitor_manager (backend);
   MetaOnscreenNative *onscreen_native = META_ONSCREEN_NATIVE (onscreen);
-  MetaOutputKms *output_kms = META_OUTPUT_KMS (onscreen_native->output);
+  MetaOutputKms *primary_output_kms =
+    META_OUTPUT_KMS (meta_render_target_get_primary_output (onscreen_native->render_target));
   MetaKmsConnector *kms_connector =
-    meta_output_kms_get_kms_connector (output_kms);
+    meta_output_kms_get_kms_connector (primary_output_kms);
   MetaPowerSave power_save_mode;
-  MetaKmsCrtc *kms_crtc;
+  MetaKmsCrtc *primary_kms_crtc;
   MetaKmsDevice *kms_device;
   MetaKmsUpdate *kms_update;
   g_autoptr (MetaKmsFeedback) kms_feedback = NULL;
@@ -2049,8 +2083,8 @@ maybe_post_next_frame (CoglOnscreen *onscreen)
       meta_kms_is_shutting_down (kms))
     goto post_failed;
 
-  kms_crtc = meta_crtc_kms_get_kms_crtc (META_CRTC_KMS (onscreen_native->crtc));
-  kms_device = meta_kms_crtc_get_device (kms_crtc);
+  primary_kms_crtc = get_primary_kms_crtc (onscreen_native->render_target);
+  kms_device = meta_render_target_native_get_kms_device (onscreen_native->render_target);
   kms_update = meta_frame_native_ensure_kms_update (frame_native,
                                                     kms_device);
 
@@ -2061,13 +2095,13 @@ maybe_post_next_frame (CoglOnscreen *onscreen)
                                        (GDestroyNotify) clutter_frame_unref);
 
   ensure_crtc_modes (onscreen, kms_update);
-  if (!meta_onscreen_native_flip_crtc (onscreen,
-                                       frame,
-                                       onscreen_native->view,
-                                       onscreen_native->crtc,
-                                       kms_update,
-                                       flip_flags,
-                                       region))
+  if (!meta_onscreen_native_flip_render_target (onscreen,
+                                                frame,
+                                                onscreen_native->view,
+                                                onscreen_native->render_target,
+                                                kms_update,
+                                                flip_flags,
+                                                region))
     {
       kms_update = meta_frame_native_steal_kms_update (frame_native);
       post_nonprimary_plane_update (onscreen_native, frame, kms_update);
@@ -2087,7 +2121,7 @@ maybe_post_next_frame (CoglOnscreen *onscreen)
         {
           meta_topic (META_DEBUG_KMS,
                       "Postponing primary plane composite update for CRTC %u (%s) to %s",
-                      meta_kms_crtc_get_id (kms_crtc),
+                      meta_kms_crtc_get_id (primary_kms_crtc),
                       meta_kms_device_get_path (kms_device),
                       meta_kms_connector_get_name (kms_connector));
 
@@ -2118,7 +2152,7 @@ maybe_post_next_frame (CoglOnscreen *onscreen)
   meta_topic (META_DEBUG_KMS,
               "Posting primary plane %s update for CRTC %u (%s) to %s",
               is_direct_scanout ? "direct scanout" : "composite",
-              meta_kms_crtc_get_id (kms_crtc),
+              meta_kms_crtc_get_id (primary_kms_crtc),
               meta_kms_device_get_path (kms_device),
               meta_kms_connector_get_name (kms_connector));
 
@@ -2145,42 +2179,56 @@ post_failed:
 }
 
 gboolean
-meta_onscreen_native_is_buffer_scanout_compatible (CoglOnscreen *onscreen,
-                                                   CoglScanout  *scanout)
+meta_onscreen_native_is_buffer_scanout_compatible (ClutterStageView *stage_view,
+                                                   CoglOnscreen     *onscreen,
+                                                   CoglScanout      *scanout)
 {
   MetaOnscreenNative *onscreen_native = META_ONSCREEN_NATIVE (onscreen);
-  MetaCrtc *crtc = onscreen_native->crtc;
-  MetaCrtcKms *crtc_kms = META_CRTC_KMS (crtc);
-  MetaGpuKms *gpu_kms;
   MetaKmsDevice *kms_device;
-  MetaKmsCrtc *kms_crtc;
   MetaKmsUpdate *test_update;
-  MetaDrmBuffer *buffer;
+  MetaDrmBuffer *buffer = META_DRM_BUFFER (cogl_scanout_get_buffer (scanout));
   g_autoptr (MetaKmsFeedback) kms_feedback = NULL;
   MetaKmsFeedbackResult result;
   graphene_rect_t src_rect;
   MtkRectangle dst_rect;
+  MtkMonitorTransform transform = clutter_stage_view_get_transform (stage_view);
+  MetaOutput *output;
+  MetaCrtc *crtc;
 
-  gpu_kms = META_GPU_KMS (meta_crtc_get_gpu (crtc));
-  kms_device = meta_gpu_kms_get_kms_device (gpu_kms);
-  kms_crtc = meta_crtc_kms_get_kms_crtc (crtc_kms);
-
+  kms_device = meta_render_target_native_get_kms_device (onscreen_native->render_target);
   test_update = meta_kms_update_new (kms_device);
 
-  cogl_scanout_get_src_rect (scanout, &src_rect);
-  cogl_scanout_get_dst_rect (scanout, &dst_rect);
+  META_RENDER_TARGET_FOREACH_FULL (onscreen_native->render_target, output, crtc)
+    {
+      MtkRectangle output_tile_rect =
+        meta_render_target_get_output_tile_rect (onscreen_native->render_target,
+                                                 output,
+                                                 transform == MTK_MONITOR_TRANSFORM_NORMAL);
+      cogl_scanout_get_src_rect (scanout, &src_rect);
+      cogl_scanout_get_dst_rect (scanout, &dst_rect);
+      /* If tiled display, get just the tile */
+      if (dst_rect.width > output_tile_rect.width || dst_rect.height > output_tile_rect.height)
+        {
+          src_rect.origin.x += output_tile_rect.x;
+          src_rect.origin.y += output_tile_rect.y;
+          src_rect.size.width = output_tile_rect.width;
+          src_rect.size.height = output_tile_rect.height;
+          dst_rect.width = output_tile_rect.width;
+          dst_rect.height = output_tile_rect.height;
+        }
 
-  buffer = META_DRM_BUFFER (cogl_scanout_get_buffer (scanout));
-  assign_primary_plane (crtc_kms,
-                        buffer,
-                        test_update,
-                        META_KMS_ASSIGN_PLANE_FLAG_DISABLE_IMPLICIT_SYNC,
-                        &src_rect,
-                        &dst_rect);
+      assign_primary_plane (META_CRTC_KMS (crtc),
+                            buffer,
+                            test_update,
+                            META_KMS_ASSIGN_PLANE_FLAG_DISABLE_IMPLICIT_SYNC,
+                            &src_rect,
+                            &dst_rect);
+    }
 
   meta_topic (META_DEBUG_KMS,
-              "Posting direct scanout test update for CRTC %u (%s) synchronously",
-              meta_kms_crtc_get_id (kms_crtc),
+              "Posting direct scanout test update for %u CRTCs(s) starting with %u (%s) synchronously",
+              meta_render_target_get_crtcs (onscreen_native->render_target)->len,
+              meta_kms_crtc_get_id (get_primary_kms_crtc (onscreen_native->render_target)),
               meta_kms_device_get_path (kms_device));
 
   kms_feedback =
@@ -2383,8 +2431,7 @@ static void
 maybe_update_vrr (MetaOnscreenNative *onscreen_native,
                   ClutterFrame       *frame)
 {
-  MetaCrtcKms *crtc_kms = META_CRTC_KMS (onscreen_native->crtc);
-  MetaKmsCrtc *kms_crtc = meta_crtc_kms_get_kms_crtc (crtc_kms);
+  MetaKmsCrtc *kms_crtc = get_primary_kms_crtc (onscreen_native->render_target);
   MetaKmsDevice *kms_device = meta_kms_crtc_get_device (kms_crtc);
   const MetaKmsCrtcState *crtc_state =
     meta_kms_crtc_get_current_state (kms_crtc);
@@ -2396,7 +2443,7 @@ maybe_update_vrr (MetaOnscreenNative *onscreen_native,
   MetaKmsUpdate *kms_update;
   gboolean vrr_enabled = FALSE;
 
-  if (meta_output_is_vrr_enabled (onscreen_native->output))
+  if (meta_output_is_vrr_enabled (meta_render_target_get_primary_output (onscreen_native->render_target)))
     vrr_enabled = onscreen_native->vrr_allowed;
 
   if (vrr_enabled != onscreen_native->vrr_enabled)
@@ -2423,8 +2470,7 @@ meta_onscreen_native_before_redraw (CoglOnscreen *onscreen,
 
   if (meta_get_debug_paint_flags () & META_DEBUG_PAINT_SYNC_CURSOR_PRIMARY)
     {
-      MetaCrtcKms *crtc_kms = META_CRTC_KMS (onscreen_native->crtc);
-      MetaKmsCrtc *kms_crtc = meta_crtc_kms_get_kms_crtc (crtc_kms);
+      MetaKmsCrtc *kms_crtc = get_primary_kms_crtc (onscreen_native->render_target);
 
       meta_kms_device_await_flush (meta_kms_crtc_get_device (kms_crtc), kms_crtc);
     }
@@ -2437,12 +2483,15 @@ meta_onscreen_native_prepare_frame (CoglOnscreen *onscreen,
                                     ClutterFrame *frame)
 {
   MetaOnscreenNative *onscreen_native = META_ONSCREEN_NATIVE (onscreen);
-  MetaCrtcKms *crtc_kms = META_CRTC_KMS (onscreen_native->crtc);
-  MetaOutputKms *output_kms = META_OUTPUT_KMS (onscreen_native->output);
-  MetaKmsCrtc *kms_crtc = meta_crtc_kms_get_kms_crtc (crtc_kms);
-  MetaKmsDevice *kms_device = meta_kms_crtc_get_device (kms_crtc);;
+  MetaCrtcKms *crtc_kms =
+    META_CRTC_KMS (meta_render_target_get_primary_crtc (onscreen_native->render_target));
+  MetaOutputKms *output_kms =
+    META_OUTPUT_KMS (meta_render_target_get_primary_output (onscreen_native->render_target));
+  MetaKmsCrtc *primary_kms_crtc = meta_crtc_kms_get_kms_crtc (crtc_kms);
+  MetaKmsDevice *kms_device = meta_kms_crtc_get_device (primary_kms_crtc);;
   MetaFrameNative *frame_native = meta_frame_native_from_frame (frame);
   int64_t target_frame_counter = cogl_onscreen_get_frame_counter (onscreen);
+  MetaCrtc *crtc;
 
   if (onscreen_native->property.gamma_lut.invalidated)
     {
@@ -2453,7 +2502,13 @@ meta_onscreen_native_prepare_frame (CoglOnscreen *onscreen,
                                                         kms_device);
 
       gamma = meta_crtc_kms_peek_gamma_lut (crtc_kms);
-      meta_kms_update_set_crtc_gamma (kms_update, kms_crtc, gamma);
+      META_RENDER_TARGET_FOREACH_CRTC (onscreen_native->render_target, crtc)
+        {
+          MetaKmsCrtc *kms_crtc =
+            meta_crtc_kms_get_kms_crtc (META_CRTC_KMS (crtc));
+
+          meta_kms_update_set_crtc_gamma (kms_update, kms_crtc, gamma);
+        }
       onscreen_native->property.gamma_lut.invalidated = FALSE;
       onscreen_native->property.gamma_lut.target_frame_counter =
         target_frame_counter;
@@ -2468,7 +2523,13 @@ meta_onscreen_native_prepare_frame (CoglOnscreen *onscreen,
                                                         kms_device);
 
       ctm = meta_crtc_kms_peek_ctm (crtc_kms);
-      meta_kms_update_set_crtc_ctm (kms_update, kms_crtc, ctm);
+      META_RENDER_TARGET_FOREACH_CRTC (onscreen_native->render_target, crtc)
+        {
+          MetaKmsCrtc *kms_crtc =
+            meta_crtc_kms_get_kms_crtc (META_CRTC_KMS (crtc));
+
+          meta_kms_update_set_crtc_ctm (kms_update, kms_crtc, ctm);
+        }
       onscreen_native->property.ctm.invalidated = FALSE;
       onscreen_native->property.ctm.target_frame_counter =
         target_frame_counter;
@@ -2484,7 +2545,7 @@ meta_onscreen_native_prepare_frame (CoglOnscreen *onscreen,
       kms_update = meta_frame_native_ensure_kms_update (frame_native,
                                                         kms_device);
 
-      enabled = meta_output_is_privacy_screen_enabled (onscreen_native->output);
+      enabled = meta_output_is_privacy_screen_enabled (meta_render_target_get_primary_output (onscreen_native->render_target));
       meta_kms_update_set_privacy_screen (kms_update, kms_connector, enabled);
       onscreen_native->property.privacy_screen.invalidated = FALSE;
       onscreen_native->property.privacy_screen.target_frame_counter =
@@ -2536,14 +2597,13 @@ meta_onscreen_native_finish_frame (CoglOnscreen *onscreen,
                                    ClutterFrame *frame)
 {
   MetaOnscreenNative *onscreen_native = META_ONSCREEN_NATIVE (onscreen);
-  MetaCrtc *crtc = onscreen_native->crtc;
-  MetaKmsCrtc *kms_crtc = meta_crtc_kms_get_kms_crtc (META_CRTC_KMS (crtc));
-  MetaKmsDevice *kms_device = meta_kms_crtc_get_device (kms_crtc);
+  MetaKmsDevice *kms_device = meta_render_target_native_get_kms_device (onscreen_native->render_target);
   MetaFrameNative *frame_native = meta_frame_native_from_frame (frame);
   MetaKmsUpdate *kms_update;
 
-  onscreen_native->needs_flush |= meta_kms_device_handle_flush (kms_device,
-                                                                kms_crtc);
+  onscreen_native->needs_flush |=
+    meta_kms_device_handle_flush (kms_device,
+                                  get_primary_kms_crtc (onscreen_native->render_target));
 
   if (!meta_frame_native_has_kms_update (frame_native))
     {
@@ -2592,7 +2652,10 @@ meta_onscreen_native_finish_frame (CoglOnscreen *onscreen,
 
   if (onscreen_native->needs_flush)
     {
-      meta_kms_update_set_flushing (kms_update, kms_crtc);
+      meta_render_target_native_foreach_kms_crtc (MetaKmsCrtc * kms_crtc, onscreen_native->render_target)
+      {
+        meta_kms_update_set_flushing (kms_update, kms_crtc);
+      }
       onscreen_native->needs_flush = FALSE;
     }
 
@@ -2607,12 +2670,13 @@ post_nonprimary_plane_update (MetaOnscreenNative *onscreen_native,
                               ClutterFrame       *frame,
                               MetaKmsUpdate      *kms_update)
 {
-  MetaCrtc *crtc = onscreen_native->crtc;
-  MetaKmsCrtc *kms_crtc = meta_crtc_kms_get_kms_crtc (META_CRTC_KMS (crtc));
-  MetaKmsDevice *kms_device = meta_kms_crtc_get_device (kms_crtc);
+  MetaCrtc *primary_crtc = meta_render_target_get_primary_crtc (onscreen_native->render_target);
+  MetaKmsCrtc *primary_kms_crtc = get_primary_kms_crtc (onscreen_native->render_target);
+  MetaKmsDevice *kms_device = meta_render_target_native_get_kms_device (onscreen_native->render_target);
   g_autoptr (MetaKmsFeedback) kms_feedback = NULL;
+  MetaCrtc *crtc;
 
-  add_cogl_frame_info (crtc, frame);
+  add_cogl_frame_info (primary_crtc, frame);
 
   meta_kms_update_add_result_listener (kms_update,
                                        &finish_frame_result_listener_vtable,
@@ -2620,19 +2684,27 @@ post_nonprimary_plane_update (MetaOnscreenNative *onscreen_native,
                                        clutter_frame_ref (frame),
                                        (GDestroyNotify) clutter_frame_unref);
 
-  meta_kms_update_add_page_flip_listener (kms_update,
-                                          kms_crtc,
-                                          &page_flip_listener_vtable,
-                                          NULL,
-                                          clutter_frame_ref (frame),
-                                          (GDestroyNotify) clutter_frame_unref);
+  META_RENDER_TARGET_FOREACH_CRTC (onscreen_native->render_target, crtc)
+    {
+      MetaKmsCrtc *kms_crtc = meta_crtc_kms_get_kms_crtc (META_CRTC_KMS (crtc));
+
+      meta_kms_update_add_page_flip_listener (kms_update,
+                                              kms_crtc,
+                                              &page_flip_listener_vtable,
+                                              NULL,
+                                              clutter_frame_ref (frame),
+                                              (GDestroyNotify) clutter_frame_unref);
+    }
 
   meta_topic (META_DEBUG_KMS,
               "Posting non-primary plane update for CRTC %u (%s)",
-              meta_kms_crtc_get_id (kms_crtc),
+              meta_kms_crtc_get_id (primary_kms_crtc),
               meta_kms_device_get_path (kms_device));
 
-  meta_kms_update_set_flushing (kms_update, kms_crtc);
+  meta_render_target_native_foreach_kms_crtc (MetaKmsCrtc * kms_crtc, onscreen_native->render_target)
+  {
+    meta_kms_update_set_flushing (kms_update, kms_crtc);
+  }
   meta_kms_device_post_update (kms_device, kms_update,
                                META_KMS_UPDATE_FLAG_NONE);
 }
@@ -2658,7 +2730,7 @@ should_surface_be_sharable (CoglOnscreen *onscreen)
 {
   MetaOnscreenNative *onscreen_native = META_ONSCREEN_NATIVE (onscreen);
 
-  if (META_GPU_KMS (meta_crtc_get_gpu (onscreen_native->crtc)) ==
+  if (META_GPU_KMS (meta_render_target_get_gpu (onscreen_native->render_target)) ==
       onscreen_native->render_gpu)
     return FALSE;
   else
@@ -2735,7 +2807,8 @@ get_supported_modifiers (CoglOnscreen *onscreen,
                          uint32_t      format)
 {
   MetaOnscreenNative *onscreen_native = META_ONSCREEN_NATIVE (onscreen);
-  MetaCrtcKms *crtc_kms = META_CRTC_KMS (onscreen_native->crtc);
+  MetaCrtcKms *crtc_kms =
+    META_CRTC_KMS (meta_render_target_get_primary_crtc (onscreen_native->render_target));
   MetaGpu *gpu;
   g_autoptr (GArray) modifiers = NULL;
 
@@ -2752,7 +2825,8 @@ static GArray *
 get_supported_kms_formats (CoglOnscreen *onscreen)
 {
   MetaOnscreenNative *onscreen_native = META_ONSCREEN_NATIVE (onscreen);
-  MetaCrtcKms *crtc_kms = META_CRTC_KMS (onscreen_native->crtc);
+  MetaCrtcKms *crtc_kms =
+    META_CRTC_KMS (meta_render_target_get_primary_crtc (onscreen_native->render_target));
   MetaKmsPlane *plane = meta_crtc_kms_get_assigned_primary_plane (crtc_kms);
 
   return meta_kms_plane_copy_drm_format_list (plane);
@@ -2791,7 +2865,8 @@ choose_onscreen_egl_config (CoglOnscreen  *onscreen,
   CoglDisplay *cogl_display = cogl_context_get_display (cogl_context);
   CoglRenderer *cogl_renderer = cogl_display_get_renderer (cogl_display);
   CoglRendererEGL *renderer_egl = COGL_RENDERER_EGL (cogl_renderer);
-  MetaCrtcKms *crtc_kms = META_CRTC_KMS (onscreen_native->crtc);
+  MetaCrtcKms *crtc_kms =
+    META_CRTC_KMS (meta_render_target_get_primary_crtc (onscreen_native->render_target));
   MetaKmsPlane *kms_plane = meta_crtc_kms_get_assigned_primary_plane (crtc_kms);
   EGLint attrs[COGL_MAX_EGL_CONFIG_ATTRIBS];
 
@@ -2903,8 +2978,8 @@ create_bos_gbm (CoglOnscreen  *onscreen,
   CoglRenderer *cogl_renderer = cogl_display_get_renderer (cogl_display);
   MetaRendererNativeGpuData *renderer_gpu_data =
     meta_renderer_egl_get_renderer_gpu_data (META_RENDERER_EGL (cogl_renderer));
-  MetaCrtcKms *crtc_kms = META_CRTC_KMS (onscreen_native->crtc);
   MetaKmsPlane *kms_plane = NULL;
+  MetaCrtc *crtc;
   uint32_t gbm_flags = GBM_BO_USE_RENDERING;
   size_t num_bos = G_N_ELEMENTS (onscreen_native->gbm.bos);
   MetaRenderDevice *render_device;
@@ -2918,29 +2993,34 @@ create_bos_gbm (CoglOnscreen  *onscreen,
   int i;
 
   should_be_sharable = should_surface_be_sharable (onscreen);
-  if (!should_be_sharable)
+  META_RENDER_TARGET_FOREACH_CRTC (onscreen_native->render_target, crtc)
     {
-      kms_plane = meta_crtc_kms_get_assigned_primary_plane (crtc_kms);
-      gbm_flags |= GBM_BO_USE_SCANOUT;
-    }
+      MetaCrtcKms *crtc_kms = META_CRTC_KMS (crtc);
 
-  if (!should_be_sharable)
-    {
-      choose_gbm_format (kms_plane,
-                         alphaless_10bpc_formats,
-                         G_N_ELEMENTS (alphaless_10bpc_formats),
-                         &gbm_format);
-    }
+      if (!should_be_sharable)
+        {
+          kms_plane = meta_crtc_kms_get_assigned_primary_plane (crtc_kms);
+          gbm_flags |= GBM_BO_USE_SCANOUT;
+        }
 
-  if (gbm_format == 0 &&
-      !choose_gbm_format (kms_plane,
-                          default_formats,
-                          G_N_ELEMENTS (default_formats),
-                          &gbm_format))
-    {
-      g_set_error (error, G_IO_ERROR, G_IO_ERROR_FAILED,
-                   "No GBM format found");
-      return FALSE;
+      if (!should_be_sharable)
+        {
+          choose_gbm_format (kms_plane,
+                             alphaless_10bpc_formats,
+                             G_N_ELEMENTS (alphaless_10bpc_formats),
+                             &gbm_format);
+        }
+
+      if (gbm_format == 0 &&
+          !choose_gbm_format (kms_plane,
+                              default_formats,
+                              G_N_ELEMENTS (default_formats),
+                              &gbm_format))
+        {
+          g_set_error (error, G_IO_ERROR, G_IO_ERROR_FAILED,
+                       "No GBM format found");
+          return FALSE;
+        }
     }
 
   format_info = meta_format_info_from_drm_format (gbm_format);
@@ -3264,7 +3344,7 @@ meta_onscreen_native_allocate (CoglFramebuffer  *framebuffer,
   int height;
   CoglFramebufferClass *parent_class;
 
-  if (META_GPU_KMS (meta_crtc_get_gpu (onscreen_native->crtc)) !=
+  if (META_GPU_KMS (meta_render_target_get_gpu (onscreen_native->render_target)) !=
       onscreen_native->render_gpu)
     {
       if (!init_secondary_gpu_state (onscreen_native->renderer_native,
@@ -3376,8 +3456,9 @@ create_secondary_gpu_buffer (CoglOnscreen        *onscreen,
                              GError             **error)
 {
   MetaOnscreenNative *onscreen_native = META_ONSCREEN_NATIVE (onscreen);
-  MetaCrtcKms *crtc_kms = META_CRTC_KMS (onscreen_native->crtc);
-  MetaGpuKms *gpu_kms = META_GPU_KMS (meta_crtc_get_gpu (onscreen_native->crtc));
+  MetaCrtcKms *crtc_kms =
+    META_CRTC_KMS (meta_render_target_get_primary_crtc (onscreen_native->render_target));
+  MetaGpuKms *gpu_kms = META_GPU_KMS (meta_render_target_get_gpu (onscreen_native->render_target));
   MetaKmsDevice *kms_device = meta_gpu_kms_get_kms_device (gpu_kms);
   const char *kms_modifiers_debug_env;
   MetaKmsDeviceFlag kms_device_flags;
@@ -3524,7 +3605,7 @@ init_secondary_gpu_state_gpu_copy_mode (CoglOnscreen               *onscreen,
 
   secondary_gpu_state = g_new0 (MetaOnscreenNativeSecondaryGpuState, 1);
 
-  gpu_kms = META_GPU_KMS (meta_crtc_get_gpu (onscreen_native->crtc));
+  gpu_kms = META_GPU_KMS (meta_render_target_get_gpu (onscreen_native->render_target));
   secondary_gpu_state->gpu_kms = gpu_kms;
   secondary_gpu_state->renderer_gpu_data = renderer_gpu_data;
   secondary_gpu_state->gbm.buffer_index = -2;
@@ -3631,7 +3712,7 @@ init_secondary_gpu_state_cpu_copy_mode (MetaRendererNative         *renderer_nat
   width = cogl_framebuffer_get_width (framebuffer);
   height = cogl_framebuffer_get_height (framebuffer);
 
-  gpu_kms = META_GPU_KMS (meta_crtc_get_gpu (onscreen_native->crtc));
+  gpu_kms = META_GPU_KMS (meta_render_target_get_gpu (onscreen_native->render_target));
   render_device = renderer_gpu_data->render_device;
   meta_topic (META_DEBUG_KMS,
               "Secondary GPU %s using DRM format '%s' (0x%x) for a %dx%d output.",
@@ -3679,7 +3760,7 @@ init_secondary_gpu_state (MetaRendererNative  *renderer_native,
                           GError             **error)
 {
   MetaOnscreenNative *onscreen_native = META_ONSCREEN_NATIVE (onscreen);
-  MetaGpu *gpu = meta_crtc_get_gpu (onscreen_native->crtc);
+  MetaGpu *gpu = meta_render_target_get_gpu (onscreen_native->render_target);
   MetaRendererNativeGpuData *renderer_gpu_data;
   g_autoptr (GError) local_error = NULL;
 
@@ -3726,11 +3807,11 @@ void
 meta_onscreen_native_invalidate (MetaOnscreenNative *onscreen_native)
 {
   const MetaOutputInfo *output_info =
-    meta_output_get_info (onscreen_native->output);
+    meta_output_get_info (meta_render_target_get_primary_output (onscreen_native->render_target));
 
-  if (meta_crtc_get_gamma_lut_size (onscreen_native->crtc) > 0)
+  if (meta_crtc_get_gamma_lut_size (meta_render_target_get_primary_crtc (onscreen_native->render_target)) > 0)
     onscreen_native->property.gamma_lut.invalidated = TRUE;
-  if (meta_crtc_is_ctm_supported (onscreen_native->crtc))
+  if (meta_crtc_is_ctm_supported (meta_render_target_get_primary_crtc (onscreen_native->render_target)))
     onscreen_native->property.ctm.invalidated = TRUE;
   if (output_info->supports_privacy_screen)
     onscreen_native->property.privacy_screen.invalidated = TRUE;
@@ -3793,8 +3874,8 @@ meta_onscreen_native_new (MetaRendererNative *renderer_native,
   onscreen_native->renderer_native = renderer_native;
   onscreen_native->render_gpu = render_gpu;
 
-  g_set_object (&onscreen_native->output, output);
-  g_set_object (&onscreen_native->crtc, crtc);
+  onscreen_native->render_target = meta_render_target_new ();
+  meta_render_target_add (onscreen_native->render_target, crtc, output);
 
   if (meta_crtc_get_gamma_lut_size (crtc) > 0)
     {
@@ -3830,11 +3911,11 @@ static void
 clear_invalidation_handlers (MetaOnscreenNative *onscreen_native)
 {
   g_clear_signal_handler (&onscreen_native->property.gamma_lut.signal_handler_id,
-                          onscreen_native->crtc);
+                          meta_render_target_get_primary_crtc (onscreen_native->render_target));
   g_clear_signal_handler (&onscreen_native->property.ctm.signal_handler_id,
-                          onscreen_native->crtc);
+                          meta_render_target_get_primary_crtc (onscreen_native->render_target));
   g_clear_signal_handler (&onscreen_native->property.privacy_screen.signal_handler_id,
-                          onscreen_native->output);
+                          meta_render_target_get_primary_output (onscreen_native->render_target));
 }
 
 static void
@@ -3873,8 +3954,7 @@ meta_onscreen_native_dispose (GObject *object)
   g_clear_pointer (&onscreen_native->secondary_gpu_state,
                    secondary_gpu_state_free);
 
-  g_clear_object (&onscreen_native->output);
-  g_clear_object (&onscreen_native->crtc);
+  g_clear_object (&onscreen_native->render_target);
 }
 
 static void
@@ -3907,7 +3987,8 @@ meta_onscreen_native_class_init (MetaOnscreenNativeClass *klass)
 MetaCrtc *
 meta_onscreen_native_get_crtc (MetaOnscreenNative *onscreen_native)
 {
-  return onscreen_native->crtc;
+  // ADLRTODO: return all crtcs
+  return meta_render_target_get_primary_crtc (onscreen_native->render_target);
 }
 
 void
