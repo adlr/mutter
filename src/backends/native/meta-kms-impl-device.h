@@ -28,6 +28,7 @@
 #include "backends/native/meta-kms-types.h"
 #include "backends/native/meta-kms-update.h"
 #include "backends/native/meta-kms.h"
+#include "backends/native/meta-render-target-native.h"
 
 typedef struct _MetaKmsDeviceCaps
 {
@@ -207,8 +208,8 @@ void meta_kms_impl_device_await_flush (MetaKmsImplDevice *impl_device,
                                        MetaKmsCrtc       *crtc);
 
 META_EXPORT_TEST
-void meta_kms_impl_device_schedule_process (MetaKmsImplDevice *impl_device,
-                                            MetaKmsCrtc       *crtc);
+void meta_kms_impl_device_schedule_process (MetaKmsImplDevice   *impl_device,
+                                            MetaKmsCrtcPtrArray *crtcs);
 
 void meta_kms_impl_device_handle_page_flip_callback (MetaKmsImplDevice   *impl_device,
                                                      MetaKmsPageFlipData *page_flip_data);
