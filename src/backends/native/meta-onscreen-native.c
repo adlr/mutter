@@ -661,7 +661,7 @@ meta_onscreen_native_flip_crtc (CoglOnscreen           *onscreen,
       break;
 #ifdef HAVE_EGL_DEVICE
     case META_RENDERER_NATIVE_MODE_EGL_DEVICE:
-      meta_kms_update_set_flushing (kms_update, kms_crtc);
+      meta_kms_update_set_flushing_one (kms_update, kms_crtc);
       meta_kms_update_set_custom_page_flip (kms_update,
                                             custom_egl_stream_page_flip,
                                             onscreen_native);
@@ -2133,11 +2133,9 @@ meta_onscreen_native_finish_frame (CoglOnscreen *onscreen,
   MetaFrameNative *frame_native = meta_frame_native_from_frame (frame);
   MetaKmsUpdate *kms_update;
 
-  meta_render_target_native_foreach_kms_crtc (MetaKmsCrtc *kms_crtc, onscreen_native->render_target)
-    {
-      onscreen_native->needs_flush |= meta_kms_device_handle_flush (kms_device,
-                                                                    kms_crtc);
-    }
+  g_autoptr (GPtrArray) kms_crtcs = meta_render_target_native_get_kms_crtc_array (onscreen_native->render_target);
+  onscreen_native->needs_flush |= meta_kms_device_handle_flush (kms_device,
+                                                                kms_crtcs);
 
   if (!meta_frame_native_has_kms_update (frame_native))
     {
@@ -2186,10 +2184,7 @@ meta_onscreen_native_finish_frame (CoglOnscreen *onscreen,
 
   if (onscreen_native->needs_flush)
     {
-      meta_render_target_native_foreach_kms_crtc (MetaKmsCrtc *kms_crtc, onscreen_native->render_target)
-        {
-          meta_kms_update_set_flushing (kms_update, kms_crtc);
-        }
+      meta_kms_update_set_flushing (kms_update, onscreen_native->render_target);
       onscreen_native->needs_flush = FALSE;
     }
 
@@ -2231,10 +2226,7 @@ post_nonprimary_plane_update (MetaOnscreenNative *onscreen_native,
               meta_kms_crtc_get_id (primary_kms_crtc),
               meta_kms_device_get_path (kms_device));
 
-  meta_render_target_native_foreach_kms_crtc (MetaKmsCrtc *kms_crtc, onscreen_native->render_target)
-    {
-      meta_kms_update_set_flushing (kms_update, kms_crtc);
-    }
+  meta_kms_update_set_flushing (kms_update, onscreen_native->render_target);
   meta_kms_device_post_update (kms_device, kms_update,
                                META_KMS_UPDATE_FLAG_NONE);
 }
