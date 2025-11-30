@@ -139,6 +139,30 @@ meta_render_target_get_gpu (MetaRenderTarget *render_target)
   return meta_crtc_get_gpu (meta_render_target_get_primary_crtc (render_target));
 }
 
+MtkRectangle
+meta_render_target_get_output_tile_frame (MetaRenderTarget *render_target,
+                                          MetaOutput       *output)
+{
+  const MetaOutputInfo *output_info = meta_output_get_info (output);
+  MtkRectangle tile_frame = MTK_RECTANGLE_INIT (0, 0, output_info->tile_info.tile_w, output_info->tile_info.tile_h);
+  for (guint i = 0; i < render_target->outputs->len; i++)
+    {
+      MetaOutput *other_output = g_ptr_array_index (render_target->outputs, i);
+      const MetaOutputInfo *other_output_info = meta_output_get_info (other_output);
+      if (output_info->tile_info.loc_v_tile == other_output_info->tile_info.loc_v_tile &&
+          output_info->tile_info.loc_h_tile > other_output_info->tile_info.loc_h_tile)
+        {
+          tile_frame.x += other_output_info->tile_info.tile_w;
+        }
+      if (output_info->tile_info.loc_h_tile == other_output_info->tile_info.loc_h_tile &&
+          output_info->tile_info.loc_v_tile > other_output_info->tile_info.loc_v_tile)
+        {
+          tile_frame.y += other_output_info->tile_info.tile_h;
+        }
+    }
+  return tile_frame;
+}
+
 MetaBackend *
 meta_render_target_get_backend (MetaRenderTarget *render_target)
 {
