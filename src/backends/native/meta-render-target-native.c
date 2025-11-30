@@ -29,6 +29,24 @@ meta_render_target_native_get_primary_crtc_kms (MetaRenderTarget *render_target)
   return META_CRTC_KMS (meta_render_target_get_primary_crtc (render_target));
 }
 
+MetaKmsCrtc *
+meta_render_target_native_get_primary_kms_crtc (MetaRenderTarget *render_target)
+{
+  return meta_crtc_kms_get_kms_crtc (meta_render_target_native_get_primary_crtc_kms (render_target));
+}
+
+MetaKmsDevice *
+meta_render_target_native_get_kms_device (MetaRenderTarget *render_target)
+{
+  return meta_kms_crtc_get_device (meta_render_target_native_get_primary_kms_crtc (render_target));
+}
+
+MetaOutputKms *
+meta_render_target_native_get_primary_output_kms (MetaRenderTarget *render_target)
+{
+  return META_OUTPUT_KMS (meta_render_target_get_primary_output (render_target));
+}
+
 GPtrArray *
 meta_render_target_native_get_crtc_kmses (MetaRenderTarget *render_target)
 {

@@ -43,8 +43,9 @@ void meta_onscreen_native_finish_frame (CoglOnscreen *onscreen,
 
 void meta_onscreen_native_dummy_power_save_page_flip (CoglOnscreen *onscreen);
 
-gboolean meta_onscreen_native_is_buffer_scanout_compatible (CoglOnscreen *onscreen,
-                                                            CoglScanout  *scanout);
+gboolean meta_onscreen_native_is_buffer_scanout_compatible (ClutterStageView *stage_view,
+                                                            CoglOnscreen     *onscreen,
+                                                            CoglScanout      *scanout);
 
 gboolean meta_onscreen_native_supports_direct_scanout (CoglOnscreen *onscreen);
 
