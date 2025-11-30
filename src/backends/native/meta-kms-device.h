@@ -20,6 +20,7 @@
 #include <glib-object.h>
 
 #include "backends/native/meta-kms-types.h"
+#include "backends/native/meta-render-target-native.h"
 #include "core/util-private.h"
 
 #define META_TYPE_KMS_DEVICE (meta_kms_device_get_type ())

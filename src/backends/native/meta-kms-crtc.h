@@ -91,3 +91,5 @@ void meta_kms_crtc_adjust_deadline_evasion (MetaKmsCrtc *crtc,
                                             int64_t      lateness_us);
 
 int64_t meta_kms_crtc_get_deadline_evasion (MetaKmsCrtc *crtc);
+
+GPtrArray * meta_kms_crtc_array_copy (GPtrArray *crtcs);

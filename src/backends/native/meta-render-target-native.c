@@ -33,17 +33,18 @@ meta_render_target_native_get_kms_device (MetaRenderTarget *render_target)
   return meta_kms_crtc_get_device (kms_crtc);
 }
 
+static MetaKmsCrtc *
+dup_kms_crtc_from_crtc (MetaCrtc *crtc)
+{
+  return g_object_ref (meta_crtc_kms_get_kms_crtc (META_CRTC_KMS (crtc)));
+}
+
 GPtrArray *
-meta_render_target_native_get_kms_crtcs (MetaRenderTarget *render_target)
+meta_render_target_native_get_kms_crtc_array (MetaRenderTarget *render_target)
 {
   GPtrArray *crtcs = meta_render_target_get_crtcs (render_target);
-  GPtrArray *ret = g_ptr_array_new_full (crtcs->len, NULL);
 
-  for (guint i = 0; i < crtcs->len; i++)
-    {
-      g_ptr_array_add (ret, meta_crtc_kms_get_kms_crtc (META_CRTC_KMS (g_ptr_array_index (crtcs, i))));
-    }
-  return ret;
+  return g_ptr_array_copy (crtcs, (GCopyFunc) dup_kms_crtc_from_crtc, NULL);
 }
 
 int64_t

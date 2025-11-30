@@ -745,11 +745,12 @@ position_changed_in_impl (MetaThreadImpl  *thread_impl,
           MetaKmsDevice *device = meta_kms_crtc_get_device (crtc);
           MetaKmsImplDevice *impl_device =
             meta_kms_device_get_impl_device (device);
+          g_autoptr (GPtrArray) crtcs = g_ptr_array_new_from_array ((void**) &crtc_state_impl->crtc, 1, NULL, NULL, NULL);
 
           crtc_state_impl->cursor_invalidated = TRUE;
 
           meta_kms_impl_device_schedule_process (impl_device,
-                                                 crtc_state_impl->crtc);
+                                                 crtcs);
         }
     }
 
@@ -796,6 +797,7 @@ update_sprite_in_impl (MetaThreadImpl  *thread_impl,
     meta_kms_device_get_impl_device (device);
   CrtcStateImpl *crtc_state_impl;
   MetaDrmBuffer *old_buffer;
+  g_autoptr (GPtrArray) crtcs = NULL;
 
   crtc_state_impl = find_crtc_state (cursor_manager_impl, crtc);
   g_return_val_if_fail (crtc_state_impl, NULL);
@@ -807,9 +809,10 @@ update_sprite_in_impl (MetaThreadImpl  *thread_impl,
   crtc_state_impl->sprite_height = data->sprite_height;
   crtc_state_impl->hotspot = data->hotspot;
   crtc_state_impl->cursor_invalidated = TRUE;
+  crtcs = g_ptr_array_new_from_array ((void**) &crtc_state_impl->crtc, 1, NULL, NULL, NULL);
 
   meta_kms_impl_device_schedule_process (impl_device,
-                                         crtc_state_impl->crtc);
+                                         crtcs);
 
   if (old_buffer)
     {

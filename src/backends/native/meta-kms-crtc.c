@@ -1192,3 +1192,20 @@ meta_kms_crtc_get_deadline_evasion (MetaKmsCrtc *crtc)
          crtc->deadline_evasion_margin.current_us +
          DEADLINE_EVASION_CONSTANT_US;
 }
+
+/*
+ * Returns a new array holding its own reference to each MetaKmsCrtc in
+ * @crtcs. Unlike g_ptr_array_copy (crtcs, NULL, NULL), this works whether or
+ * not @crtcs itself owns references, since g_ptr_array_copy() inherits the
+ * source array's element free function without taking references.
+ */
+GPtrArray *
+meta_kms_crtc_array_copy (GPtrArray *crtcs)
+{
+  GPtrArray *copy;
+
+  copy = g_ptr_array_copy (crtcs, (GCopyFunc) g_object_ref, NULL);
+  g_ptr_array_set_free_func (copy, g_object_unref);
+
+  return copy;
+}

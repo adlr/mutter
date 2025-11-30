@@ -35,7 +35,7 @@ struct _MetaKmsUpdate
   MetaKmsDevice *device;
 
   gboolean is_latchable;
-  MetaKmsCrtc *latch_crtc;
+  GPtrArray *latch_crtcs;  /* of MetaKmsCrtc * */
 
   GList *mode_sets;
   GList *plane_assignments;
@@ -241,17 +241,9 @@ update_latch_crtc (MetaKmsUpdate *update,
 {
   if (update->is_latchable)
     {
-      if (update->latch_crtc)
+      if (g_ptr_array_find (update->latch_crtcs, crtc, NULL) == FALSE)
         {
-          if (update->latch_crtc != crtc)
-            {
-              update->is_latchable = FALSE;
-              update->latch_crtc = NULL;
-            }
-        }
-      else
-        {
-          update->latch_crtc = crtc;
+          g_ptr_array_add (update->latch_crtcs, crtc);
         }
     }
 }
@@ -1174,6 +1166,7 @@ meta_kms_update_new (MetaKmsDevice *device)
   update = g_new0 (MetaKmsUpdate, 1);
   update->device = device;
   update->is_latchable = TRUE;
+  update->latch_crtcs = g_ptr_array_new ();
   update->sync_fd = -1;
 
   return update;
@@ -1185,6 +1178,7 @@ meta_kms_update_free (MetaKmsUpdate *update)
   if (update->impl_device)
     meta_kms_impl_device_unhold_fd (update->impl_device);
 
+  g_clear_pointer (&update->latch_crtcs, g_ptr_array_unref);
   g_list_free_full (update->result_listeners,
                     (GDestroyNotify) meta_kms_result_listener_free);
   g_list_free_full (update->plane_assignments,
@@ -1211,16 +1205,29 @@ meta_kms_update_realize (MetaKmsUpdate     *update,
 }
 
 void
-meta_kms_update_set_flushing (MetaKmsUpdate *update,
-                              MetaKmsCrtc   *crtc)
+meta_kms_update_set_flushing_one (MetaKmsUpdate    *update,
+                                  MetaKmsCrtc      *kms_crtc)
 {
-  update_latch_crtc (update, crtc);
+  update_latch_crtc (update, kms_crtc);
 }
 
-MetaKmsCrtc *
-meta_kms_update_get_latch_crtc (MetaKmsUpdate *update)
+void
+meta_kms_update_set_flushing (MetaKmsUpdate    *update,
+                              MetaRenderTarget *render_target)
 {
-  return update->latch_crtc;
+  MetaCrtc *crtc;
+
+  META_RENDER_TARGET_FOREACH_CRTC (render_target, crtc)
+    {
+      meta_kms_update_set_flushing_one (update,
+                                        meta_crtc_kms_get_kms_crtc (META_CRTC_KMS (crtc)));
+    }
+}
+
+GPtrArray *
+meta_kms_update_get_latch_crtcs (MetaKmsUpdate *update)
+{
+  return update->latch_crtcs;
 }
 
 int
