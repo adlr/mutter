@@ -167,6 +167,7 @@ on_scanout_presented (ClutterStage     *stage,
   MetaBackendNative *backend_native = META_BACKEND_NATIVE (backend);
   MetaDevicePool *device_pool;
   CoglFramebuffer *fb;
+  MetaRenderTarget *render_target;
   MetaCrtc *crtc;
   MetaKmsCrtc *kms_crtc;
   MetaKmsDevice *kms_device;
@@ -183,7 +184,8 @@ on_scanout_presented (ClutterStage     *stage,
   device_pool = meta_backend_native_get_device_pool (backend_native);
 
   fb = clutter_stage_view_get_onscreen (stage_view);
-  crtc = meta_onscreen_native_get_crtc (META_ONSCREEN_NATIVE (fb));
+  render_target = meta_onscreen_native_get_render_target (META_ONSCREEN_NATIVE (fb));
+  crtc = meta_render_target_get_primary_crtc (render_target);
   kms_crtc = meta_crtc_kms_get_kms_crtc (META_CRTC_KMS (crtc));
   kms_device = meta_kms_crtc_get_device (kms_crtc);
 
