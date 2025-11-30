@@ -27,9 +27,13 @@
 
 #include "backends/meta-render-target.h"
 #include "backends/native/meta-crtc-kms.h"
+#include "backends/native/meta-output-kms.h"
 
-MetaCrtcKms *
-meta_render_target_native_get_primary_crtc_kms (MetaRenderTarget *render_target);
+MetaCrtcKms * meta_render_target_native_get_primary_crtc_kms (MetaRenderTarget *render_target);
+MetaKmsCrtc * meta_render_target_native_get_primary_kms_crtc (MetaRenderTarget *render_target);
+MetaOutputKms * meta_render_target_native_get_primary_output_kms (MetaRenderTarget *render_target);
+
+MetaKmsDevice * meta_render_target_native_get_kms_device (MetaRenderTarget *render_target);
 
 /* Caller takes ownership of return value */
 GPtrArray *  /* of type MetaCrtcKms * */
@@ -42,9 +46,25 @@ meta_render_target_native_get_kms_crtcs (MetaRenderTarget *render_target);
 int64_t meta_render_target_native_get_deadline_evasion (MetaRenderTarget *render_target);
 
 #define meta_render_target_native_foreach_crtc_kms(crtc_kms_decl, render_target) \
-  for (guint keep = 1, \
-       count = 0, \
-       size = meta_render_target_get_crtcs (render_target)->len; \
-       keep && count != size; \
-       keep = !keep, count++) \
-    for(crtc_kms_decl = META_CRTC_KMS (g_ptr_array_index (meta_render_target_get_crtcs (render_target), count)); keep; keep = !keep)
+  for (guint toggle__ = 1, \
+       count__ = 0, \
+       size__ = meta_render_target_get_crtcs (render_target)->len; \
+       count__ < size__; \
+       toggle__ = 1, count__++) \
+  for (crtc_kms_decl = META_CRTC_KMS (g_ptr_array_index (meta_render_target_get_crtcs (render_target), count__)); toggle__; toggle__ = 0)
+
+#define meta_render_target_native_foreach_output_kms(output_kms_decl, render_target) \
+  for (guint toggle__ = 1, \
+       count__ = 0, \
+       size__ = meta_render_target_get_outputs (render_target)->len; \
+       count__ < size__; \
+       toggle__ = 1, count__++) \
+  for (output_kms_decl = META_OUTPUT_KMS (g_ptr_array_index (meta_render_target_get_outputs (render_target), count__)); toggle__; toggle__ = 0)
+
+#define meta_render_target_native_foreach_kms_crtc(kms_crtc_decl, render_target) \
+  for (guint toggle__ = 1, \
+       count__ = 0, \
+       size__ = meta_render_target_get_crtcs (render_target)->len; \
+       count__ < size__; \
+       toggle__ = 1, count__++) \
+  for (kms_crtc_decl = meta_crtc_kms_get_kms_crtc (META_CRTC_KMS (g_ptr_array_index (meta_render_target_get_crtcs (render_target), count__))); toggle__; toggle__ = 0)
