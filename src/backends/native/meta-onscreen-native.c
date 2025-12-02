@@ -3647,11 +3647,10 @@ meta_onscreen_native_class_init (MetaOnscreenNativeClass *klass)
   onscreen_class->get_window_handles = meta_onscreen_native_get_window_handles;
 }
 
-MetaCrtc *
-meta_onscreen_native_get_crtc (MetaOnscreenNative *onscreen_native)
+MetaRenderTarget *
+meta_onscreen_native_get_render_target (MetaOnscreenNative *onscreen_native)
 {
-  // ADLRTODO: return all crtcs
-  return meta_render_target_get_primary_crtc (onscreen_native->render_target);
+  return onscreen_native->render_target;
 }
 
 void
