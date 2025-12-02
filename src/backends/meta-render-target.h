@@ -45,3 +45,12 @@ MtkRectangle meta_render_target_get_output_tile_frame (MetaRenderTarget *render_
 
 META_EXPORT_TEST
 MetaBackend * meta_render_target_get_backend (MetaRenderTarget *render_target);
+
+#define meta_render_target_foreach_crtc_output(crtc_decl, output_decl, render_target) \
+  for (guint toggle__ = 1, \
+       count__ = 0, \
+       size__ = meta_render_target_get_crtcs (render_target)->len; \
+       count__ < size__; \
+       toggle__ = 1, count__++) \
+    for (crtc_decl = g_ptr_array_index (meta_render_target_get_crtcs (render_target), count__); toggle__; ) \
+      for (output_decl = g_ptr_array_index (meta_render_target_get_outputs (render_target), count__); toggle__; toggle__ = 0)
