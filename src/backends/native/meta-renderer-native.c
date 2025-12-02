@@ -1514,8 +1514,7 @@ static MetaRendererView *
 meta_renderer_native_create_view (MetaRenderer        *renderer,
                                   MetaLogicalMonitor  *logical_monitor,
                                   MetaMonitor         *monitor,
-                                  MetaOutput          *output,
-                                  MetaCrtc            *crtc,
+                                  MetaRenderTarget    *render_target,
                                   GError             **error)
 {
   MetaRendererNative *renderer_native = META_RENDERER_NATIVE (renderer);
@@ -1536,21 +1535,20 @@ meta_renderer_native_create_view (MetaRenderer        *renderer,
   float scale;
   int onscreen_width;
   int onscreen_height;
-  MtkRectangle view_layout;
+  MtkRectangle view_layout = meta_render_target_get_view_layout (render_target);
+  MtkRectangle output_frame = meta_render_target_get_output_frame (render_target);
   MetaRendererViewNative *view_native;
   EGLSurface egl_surface;
   GError *local_error = NULL;
-  g_autoptr (MetaRenderTarget) render_target = meta_render_target_new ();
-  meta_render_target_add (render_target, crtc, output);
 
-  crtc_config = meta_crtc_get_config (crtc);
+  crtc_config = meta_crtc_get_config (meta_render_target_get_primary_crtc (render_target));
   crtc_mode_info = meta_crtc_mode_get_info (crtc_config->mode);
-  onscreen_width = crtc_mode_info->width;
-  onscreen_height = crtc_mode_info->height;
+  onscreen_width = output_frame.width;
+  onscreen_height = output_frame.height;
 
-  if (META_IS_CRTC_KMS (crtc))
+  if (META_IS_CRTC_KMS (meta_render_target_get_primary_crtc (render_target)))
     {
-      MetaGpuKms *gpu_kms = META_GPU_KMS (meta_crtc_get_gpu (crtc));
+      MetaGpuKms *gpu_kms = META_GPU_KMS (meta_render_target_get_gpu (render_target));
       g_autoptr (MetaOnscreenNative) onscreen_native = NULL;
 
       if (!meta_renderer_native_ensure_gpu_data (renderer_native,
@@ -1569,8 +1567,7 @@ meta_renderer_native_create_view (MetaRenderer        *renderer,
 
           onscreen_native = meta_onscreen_native_new (renderer_native,
                                                       primary_gpu_kms,
-                                                      output,
-                                                      crtc,
+                                                      render_target,
                                                       cogl_context,
                                                       onscreen_width,
                                                       onscreen_height);
@@ -1608,20 +1605,16 @@ meta_renderer_native_create_view (MetaRenderer        *renderer,
 
   view_transform = calculate_view_transform (monitor_manager,
                                              logical_monitor,
-                                             output,
-                                             crtc);
+                                             meta_render_target_get_primary_output (render_target),
+                                             meta_render_target_get_primary_crtc (render_target));
 
   if (meta_backend_is_stage_views_scaled (backend))
     scale = meta_logical_monitor_get_scale (logical_monitor);
   else
     scale = 1.0;
 
-  mtk_rectangle_from_graphene_rect (&crtc_config->layout,
-                                    MTK_ROUNDING_STRATEGY_ROUND,
-                                    &view_layout);
-
   view_native = g_object_new (META_TYPE_RENDERER_VIEW_NATIVE,
-                              "name", meta_output_get_name (output),
+                              "name", meta_output_get_name (meta_render_target_get_primary_output (render_target)),
                               "backend", backend,
                               "color-device", color_device,
                               "stage", meta_backend_get_stage (backend),

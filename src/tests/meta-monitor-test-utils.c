@@ -630,6 +630,13 @@ meta_check_monitor_configuration (MetaContext           *context,
           g_assert_nonnull (view);
           clutter_stage_view_get_layout (CLUTTER_STAGE_VIEW (view),
                                          &view_layout);
+          if (expect->n_tiled_monitors > 0)
+            {
+              // In a tiled setup, view_layout may include all tiles for the given monitor.
+              MtkRectangle crtc_tile;
+              mtk_rectangle_from_graphene_rect (&crtc_config->layout, MTK_ROUNDING_STRATEGY_ROUND, &crtc_tile);
+              mtk_rectangle_intersect (&view_layout, &crtc_tile, &view_layout);
+            }
           g_assert_cmpfloat_with_epsilon (crtc_config->layout.origin.x,
                                           view_layout.x,
                                           FLT_EPSILON);

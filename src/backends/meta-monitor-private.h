@@ -58,6 +58,12 @@ typedef gboolean (* MetaMonitorModeFunc) (MetaMonitor         *monitor,
                                           gpointer             user_data,
                                           GError             **error);
 
+typedef gboolean (* MetaMonitorModeGroupFunc) (MetaMonitor      *monitor,
+                                               MetaMonitorMode  *mode,
+                                               GPtrArray        *monitor_crtc_modes,
+                                               gpointer          user_data,
+                                               GError          **error);
+
 typedef enum _MetaMonitorScalesConstraint
 {
   META_MONITOR_SCALES_CONSTRAINT_NONE = 0,
@@ -257,6 +263,13 @@ gboolean meta_monitor_mode_foreach_crtc (MetaMonitor          *monitor,
                                          MetaMonitorModeFunc   func,
                                          gpointer              user_data,
                                          GError              **error);
+
+META_EXPORT_TEST
+gboolean meta_monitor_mode_foreach_crtc_group (MetaMonitor               *monitor,
+                                               MetaMonitorMode           *mode,
+                                               MetaMonitorModeGroupFunc   func,
+                                               gpointer                   user_data,
+                                               GError                   **error);
 
 META_EXPORT_TEST
 gboolean meta_monitor_mode_foreach_output (MetaMonitor          *monitor,

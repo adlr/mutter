@@ -21,6 +21,7 @@
 #include <glib.h>
 
 #include "backends/meta-backend-types.h"
+#include "backends/meta-render-target.h"
 #include "backends/native/meta-backend-native-types.h"
 #include "clutter/clutter.h"
 #include "cogl/cogl.h"
@@ -54,8 +55,7 @@ void meta_onscreen_native_set_view (CoglOnscreen     *onscreen,
 
 MetaOnscreenNative * meta_onscreen_native_new (MetaRendererNative *renderer_native,
                                                MetaGpuKms         *render_gpu,
-                                               MetaOutput         *output,
-                                               MetaCrtc           *crtc,
+                                               MetaRenderTarget   *render_target,
                                                CoglContext        *cogl_context,
                                                int                 width,
                                                int                 height);

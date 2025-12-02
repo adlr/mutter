@@ -41,7 +41,6 @@ gboolean meta_render_target_has_crtc (MetaRenderTarget *render_target,
                                       MetaCrtc         *crtc);
 GPtrArray * meta_render_target_get_crtcs (MetaRenderTarget *render_target);
 GPtrArray * meta_render_target_get_outputs (MetaRenderTarget *render_target);
-MtkRectangle meta_render_target_get_view_layout (MetaRenderTarget *render_target);
 MetaGpu * meta_render_target_get_gpu (MetaRenderTarget *render_target);
 
 /* Returns the output tile frame. That is, the rectangle in physical
@@ -55,6 +54,8 @@ MetaGpu * meta_render_target_get_gpu (MetaRenderTarget *render_target);
  * ignore any tile info and look at the current crtc mode to get the
  * size in physical pixels.
  */
+MtkRectangle meta_render_target_get_output_frame (MetaRenderTarget *render_target);
+MtkRectangle meta_render_target_get_view_layout (MetaRenderTarget *render_target);
 MtkRectangle meta_render_target_get_output_tile_frame (MetaRenderTarget *render_target,
                                                        MetaOutput       *output,
                                                        gboolean          transform);

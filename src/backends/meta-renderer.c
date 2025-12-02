@@ -95,8 +95,7 @@ static MetaRendererView *
 meta_renderer_create_view (MetaRenderer        *renderer,
                            MetaLogicalMonitor  *logical_monitor,
                            MetaMonitor         *monitor,
-                           MetaOutput          *output,
-                           MetaCrtc            *crtc,
+                           MetaRenderTarget    *render_target,
                            GError             **error)
 {
   MetaRendererView *view;
@@ -104,8 +103,7 @@ meta_renderer_create_view (MetaRenderer        *renderer,
   view = META_RENDERER_GET_CLASS (renderer)->create_view (renderer,
                                                           logical_monitor,
                                                           monitor,
-                                                          output,
-                                                          crtc,
+                                                          render_target,
                                                           error);
 
   if (view)
@@ -132,8 +130,7 @@ meta_renderer_rebuild_views (MetaRenderer *renderer)
 static void
 create_crtc_view (MetaLogicalMonitor *logical_monitor,
                   MetaMonitor        *monitor,
-                  MetaOutput         *output,
-                  MetaCrtc           *crtc,
+                  MetaRenderTarget   *render_target,
                   gpointer            user_data)
 {
   MetaRenderer *renderer = user_data;
@@ -143,14 +140,13 @@ create_crtc_view (MetaLogicalMonitor *logical_monitor,
   view = meta_renderer_create_view (renderer,
                                     logical_monitor,
                                     monitor,
-                                    output,
-                                    crtc,
+                                    render_target,
                                     &error);
   if (!view)
     {
       g_warning ("Failed to create view for %s on %s: %s",
                  meta_monitor_get_display_name (monitor),
-                 meta_output_get_name (output),
+                 meta_output_get_name (meta_render_target_get_primary_output (render_target)),
                  error->message);
     }
 }
