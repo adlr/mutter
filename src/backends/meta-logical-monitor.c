@@ -246,21 +246,40 @@ typedef struct _ForeachCrtcData
 } ForeachCrtcData;
 
 static gboolean
+foreach_crtc_group (MetaMonitor      *monitor,
+                    MetaMonitorMode  *mode,
+                    GPtrArray        *monitor_crtc_modes,  /* of type MetaMonitorCrtcMode * */
+                    gpointer          user_data,
+                    GError          **error)
+{
+  ForeachCrtcData *data = user_data;
+  g_autoptr (MetaRenderTarget) render_target = meta_render_target_new ();
+  for (guint i = 0; i < monitor_crtc_modes->len; i++)
+    {
+      MetaMonitorCrtcMode *monitor_crtc_mode = g_ptr_array_index (monitor_crtc_modes, i);
+      MetaOutput *output = monitor_crtc_mode->output;
+      MetaCrtc *crtc = meta_output_get_assigned_crtc (output);
+      meta_render_target_add (render_target, crtc, output);
+    }
+
+  data->func (data->logical_monitor,
+              monitor,
+              render_target,
+              data->user_data);
+
+  return TRUE;
+}
+
+static gboolean
 foreach_crtc (MetaMonitor         *monitor,
               MetaMonitorMode     *mode,
               MetaMonitorCrtcMode *monitor_crtc_mode,
               gpointer             user_data,
               GError             **error)
 {
-  ForeachCrtcData *data = user_data;
-
-  data->func (data->logical_monitor,
-              monitor,
-              monitor_crtc_mode->output,
-              meta_output_get_assigned_crtc (monitor_crtc_mode->output),
-              data->user_data);
-
-  return TRUE;
+  g_autoptr (GPtrArray) monitor_crtc_modes = g_ptr_array_new_full (1, NULL);
+  g_ptr_array_add (monitor_crtc_modes, monitor_crtc_mode);
+  return foreach_crtc_group (monitor, mode, monitor_crtc_modes, user_data, error);
 }
 
 void
@@ -281,7 +300,11 @@ meta_logical_monitor_foreach_crtc (MetaLogicalMonitor        *logical_monitor,
       };
 
       mode = meta_monitor_get_current_mode (monitor);
-      meta_monitor_mode_foreach_crtc (monitor, mode, foreach_crtc, &data, NULL);
+      const char *tile_en = g_getenv ("TILE_EN");
+      if (tile_en && !strcmp (tile_en, "1"))
+        meta_monitor_mode_foreach_crtc_group (monitor, mode, foreach_crtc_group, &data, NULL);
+      else
+        meta_monitor_mode_foreach_crtc (monitor, mode, foreach_crtc, &data, NULL);
     }
 }
 

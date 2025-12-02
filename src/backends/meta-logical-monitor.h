@@ -54,8 +54,7 @@ G_DECLARE_FINAL_TYPE (MetaLogicalMonitor, meta_logical_monitor,
 
 typedef void (* MetaLogicalMonitorCrtcFunc) (MetaLogicalMonitor *logical_monitor,
                                              MetaMonitor        *monitor,
-                                             MetaOutput         *output,
-                                             MetaCrtc           *crtc,
+                                             MetaRenderTarget   *render_target,
                                              gpointer            user_data);
 
 MetaLogicalMonitor * meta_logical_monitor_new (MetaMonitorManager       *monitor_manager,

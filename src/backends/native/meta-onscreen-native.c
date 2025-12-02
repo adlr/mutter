@@ -3016,14 +3016,15 @@ on_privacy_screen_enabled_changed (MetaOutput         *output,
 MetaOnscreenNative *
 meta_onscreen_native_new (MetaRendererNative *renderer_native,
                           MetaGpuKms         *render_gpu,
-                          MetaOutput         *output,
-                          MetaCrtc           *crtc,
+                          MetaRenderTarget   *render_target,
                           CoglContext        *cogl_context,
                           int                 width,
                           int                 height)
 {
   MetaOnscreenNative *onscreen_native;
   CoglFramebufferDriverConfig driver_config;
+  MetaCrtc *crtc = meta_render_target_get_primary_crtc (render_target);
+  MetaOutput *output = meta_render_target_get_primary_output (render_target);
   const MetaOutputInfo *output_info = meta_output_get_info (output);
 
   driver_config = (CoglFramebufferDriverConfig) {
@@ -3039,8 +3040,7 @@ meta_onscreen_native_new (MetaRendererNative *renderer_native,
   onscreen_native->renderer_native = renderer_native;
   onscreen_native->render_gpu = render_gpu;
 
-  onscreen_native->render_target = meta_render_target_new ();
-  meta_render_target_add (onscreen_native->render_target, crtc, output);
+  onscreen_native->render_target = g_object_ref (render_target);
 
   if (meta_crtc_get_gamma_lut_size (crtc) > 0)
     {
@@ -3124,7 +3124,7 @@ meta_onscreen_native_dispose (GObject *object)
   g_clear_pointer (&onscreen_native->secondary_gpu_state,
                    secondary_gpu_state_free);
 
-  g_clear_pointer (&onscreen_native->render_target, g_ptr_array_unref);
+  g_clear_pointer (&onscreen_native->render_target, g_object_unref);
 }
 
 static void
