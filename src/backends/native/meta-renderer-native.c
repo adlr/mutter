@@ -493,9 +493,9 @@ free_unused_gpu_datas (MetaRendererNative *renderer_native)
   for (l = renderer_native->lingering_onscreens; l; l = l->next)
     {
       MetaOnscreenNative *onscreen_native = META_ONSCREEN_NATIVE (l->data);
-      MetaCrtc *crtc = meta_onscreen_native_get_crtc (onscreen_native);
+      MetaRenderTarget *render_target = meta_onscreen_native_get_render_target (onscreen_native);
 
-      g_hash_table_add (used_gpus, meta_crtc_get_gpu (crtc));
+      g_hash_table_add (used_gpus, meta_render_target_get_gpu (render_target));
     }
 
   g_hash_table_foreach_remove (renderer_native->gpu_datas,
@@ -662,34 +662,44 @@ meta_renderer_native_queue_modes_reset (MetaRendererNative *renderer_native)
         {
           MetaOnscreenNative *onscreen_native =
             META_ONSCREEN_NATIVE (framebuffer);
+          MetaRenderTarget *render_target = meta_onscreen_native_get_render_target (onscreen_native);
+          MetaOutput *output;
           MetaCrtc *crtc;
-          MetaCrtcKms *crtc_kms;
-          MetaKmsCrtc *kms_crtc;
-          MetaKmsPlane *kms_plane;
-          MtkRectangle view_layout;
-          float view_scale;
-          MetaKmsCrtcLayout crtc_layout;
 
-          crtc = meta_onscreen_native_get_crtc (onscreen_native);
-          crtc_kms = META_CRTC_KMS (crtc);
+          META_RENDER_TARGET_FOREACH_FULL (render_target, output, crtc)
+          {
+            MetaCrtcKms *crtc_kms;
+            MetaKmsCrtc *kms_crtc;
+            MetaKmsPlane *kms_plane;
+            MtkRectangle view_layout;
+            MtkRectangle output_layout =
+              meta_render_target_get_output_tile_rect (render_target, output, TRUE);
+            float view_scale;
+            MetaKmsCrtcLayout crtc_layout;
 
-          kms_plane = meta_crtc_kms_get_assigned_cursor_plane (crtc_kms);
-          kms_crtc = meta_crtc_kms_get_kms_crtc (crtc_kms);
+            crtc_kms = META_CRTC_KMS (crtc);
 
-          clutter_stage_view_get_layout (stage_view, &view_layout);
-          view_scale = clutter_stage_view_get_scale (stage_view);
+            kms_plane = meta_crtc_kms_get_assigned_cursor_plane (crtc_kms);
+            kms_crtc = meta_crtc_kms_get_kms_crtc (crtc_kms);
 
-          crtc_layout = (MetaKmsCrtcLayout) {
-            .crtc = kms_crtc,
-            .cursor_plane = kms_plane,
-            .layout = GRAPHENE_RECT_INIT (view_layout.x,
-                                          view_layout.y,
-                                          view_layout.width,
-                                          view_layout.height),
-            .scale = view_scale,
-          };
-          g_array_append_val (crtc_layouts, crtc_layout);
+            clutter_stage_view_get_layout (stage_view, &view_layout);
+            view_scale = clutter_stage_view_get_scale (stage_view);
 
+            graphene_rect_t output_layout_gr = mtk_rectangle_to_graphene_rect (&output_layout);
+            graphene_rect_scale (&output_layout_gr, 1 / view_scale, 1 / view_scale, &output_layout_gr);
+
+            crtc_layout = (MetaKmsCrtcLayout) {
+              .crtc = kms_crtc,
+              .cursor_plane = kms_plane,
+              .layout = GRAPHENE_RECT_INIT (view_layout.x + output_layout_gr.origin.x,
+                                            view_layout.y + output_layout_gr.origin.y,
+                                            output_layout_gr.size.width,
+                                            output_layout_gr.size.height),
+              .scale = view_scale,
+            };
+            g_array_append_val (crtc_layouts, crtc_layout);
+
+          }
           meta_onscreen_native_invalidate (onscreen_native);
           renderer_native->pending_mode_set_views =
             g_list_prepend (renderer_native->pending_mode_set_views,
