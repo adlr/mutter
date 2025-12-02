@@ -62,7 +62,7 @@ MetaOnscreenNative * meta_onscreen_native_new (MetaRendererNative *renderer_nati
                                                int                 height);
 
 META_EXPORT_TEST
-MetaCrtc * meta_onscreen_native_get_crtc (MetaOnscreenNative *onscreen_native);
+MetaRenderTarget * meta_onscreen_native_get_render_target (MetaOnscreenNative *onscreen_native);
 
 void meta_onscreen_native_invalidate (MetaOnscreenNative *onscreen_native);
 
