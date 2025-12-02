@@ -25,6 +25,7 @@
 #include <glib-object.h>
 
 #include "backends/meta-monitor-manager-private.h"
+#include "backends/meta-render-target.h"
 #include "backends/meta-renderer-view.h"
 #include "core/util-private.h"
 #include "clutter/clutter-mutter.h"
@@ -41,8 +42,7 @@ struct _MetaRendererClass
   MetaRendererView * (* create_view) (MetaRenderer        *renderer,
                                       MetaLogicalMonitor  *logical_monitor,
                                       MetaMonitor         *monitor,
-                                      MetaOutput          *output,
-                                      MetaCrtc            *crtc,
+                                      MetaRenderTarget    *render_target,
                                       GError             **error);
   void (* rebuild_views) (MetaRenderer *renderer);
   void (* resume) (MetaRenderer *renderer);
