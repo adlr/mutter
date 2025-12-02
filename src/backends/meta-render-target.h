@@ -37,8 +37,9 @@ const char * meta_render_target_get_name (MetaRenderTarget *render_target);
 gboolean meta_render_target_has_crtc (MetaRenderTarget *render_target, MetaCrtc *crtc);
 GPtrArray * meta_render_target_get_crtcs (MetaRenderTarget *render_target);
 GPtrArray * meta_render_target_get_outputs (MetaRenderTarget *render_target);
-MtkRectangle meta_render_target_get_view_layout (MetaRenderTarget *render_target);
 MetaGpu * meta_render_target_get_gpu (MetaRenderTarget *render_target);
+MtkRectangle meta_render_target_get_output_frame (MetaRenderTarget *render_target);
+MtkRectangle meta_render_target_get_view_layout (MetaRenderTarget *render_target);
 MtkRectangle meta_render_target_get_output_tile_frame (MetaRenderTarget *render_target, MetaOutput *output);
 
 META_EXPORT_TEST
