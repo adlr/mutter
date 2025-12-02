@@ -65,8 +65,7 @@ static MetaRendererView *
 meta_renderer_x11_nested_create_view (MetaRenderer        *renderer,
                                       MetaLogicalMonitor  *logical_monitor,
                                       MetaMonitor         *monitor,
-                                      MetaOutput          *output,
-                                      MetaCrtc            *crtc,
+                                      MetaRenderTarget    *render_target,
                                       GError             **error)
 {
   MetaBackend *backend = meta_renderer_get_backend (renderer);
@@ -88,7 +87,7 @@ meta_renderer_x11_nested_create_view (MetaRenderer        *renderer,
   else
     view_scale = 1.0;
 
-  crtc_config = meta_crtc_get_config (crtc);
+  crtc_config = meta_crtc_get_config (meta_render_target_get_primary_crtc (render_target));
   width = (int) roundf (crtc_config->layout.size.width * view_scale);
   height = (int) roundf (crtc_config->layout.size.height * view_scale);
 
@@ -101,18 +100,18 @@ meta_renderer_x11_nested_create_view (MetaRenderer        *renderer,
   mode_info = meta_crtc_mode_get_info (crtc_config->mode);
 
   view = g_object_new (META_TYPE_RENDERER_VIEW,
-                       "name", meta_output_get_name (output),
+                       "name", meta_output_get_name (meta_render_target_get_primary_output (render_target)),
                        "backend", backend,
                        "color-device", color_device,
                        "stage", meta_backend_get_stage (backend),
                        "layout", &view_layout,
-                       "crtc", crtc,
+                       "render-target", render_target,
                        "refresh-rate", mode_info->refresh_rate,
                        "framebuffer", COGL_FRAMEBUFFER (fake_onscreen),
                        "transform", MTK_MONITOR_TRANSFORM_NORMAL,
                        "scale", view_scale,
                        NULL);
-  g_object_set_data (G_OBJECT (view), "crtc", crtc);
+  g_object_set_data (G_OBJECT (view), "crtc", meta_render_target_get_primary_crtc (render_target));
 
   return view;
 }

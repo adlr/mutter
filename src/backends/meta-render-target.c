@@ -128,6 +128,28 @@ meta_render_target_get_gpu (MetaRenderTarget *render_target)
 }
 
 MtkRectangle
+meta_render_target_get_output_frame (MetaRenderTarget *render_target)
+{
+  MtkRectangle output_frame;
+  const MetaCrtcConfig *crtc_config = meta_crtc_get_config (g_ptr_array_index (render_target->crtcs, 0));
+  mtk_rectangle_from_graphene_rect (&crtc_config->layout,
+                                    MTK_ROUNDING_STRATEGY_ROUND,
+                                    &output_frame);
+  // Handle all crtcs after the first by unioning them together
+  for (guint i = 1; i < render_target->crtcs->len; i++)
+    {
+      MetaCrtc *crtc = g_ptr_array_index (render_target->crtcs, i);
+      MtkRectangle other_view_layout;
+      crtc_config = meta_crtc_get_config (crtc);
+      mtk_rectangle_from_graphene_rect (&crtc_config->layout,
+                                        MTK_ROUNDING_STRATEGY_ROUND,
+                                        &other_view_layout);
+      mtk_rectangle_union (&output_frame, &other_view_layout, &output_frame);
+    }
+  return output_frame;
+}
+
+MtkRectangle
 meta_render_target_get_output_tile_frame (MetaRenderTarget *render_target, MetaOutput *output)
 {
   const MetaOutputInfo *output_info = meta_output_get_info (output);
