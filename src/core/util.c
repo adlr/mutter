@@ -365,67 +365,67 @@ meta_topic_to_string (MetaDebugTopic topic)
   switch (topic)
     {
     case META_DEBUG_FOCUS:
-      return "FOCUS";
+      return "FOCUS-B";
     case META_DEBUG_WORKAREA:
-      return "WORKAREA";
+      return "WORKAREA-B";
     case META_DEBUG_STACK:
-      return "STACK";
+      return "STACK-B";
     case META_DEBUG_SM:
-      return "SM";
+      return "SM-B";
     case META_DEBUG_EVENTS:
-      return "EVENTS";
+      return "EVENTS-B";
     case META_DEBUG_WINDOW_STATE:
-      return "WINDOW_STATE";
+      return "WINDOW_STATE-B";
     case META_DEBUG_WINDOW_OPS:
-      return "WINDOW_OPS";
+      return "WINDOW_OPS-B";
     case META_DEBUG_PLACEMENT:
-      return "PLACEMENT";
+      return "PLACEMENT-B";
     case META_DEBUG_DISPLAY:
-      return "DISPLAY";
+      return "DISPLAY-B";
     case META_DEBUG_GEOMETRY:
-      return "GEOMETRY";
+      return "GEOMETRY-B";
     case META_DEBUG_KEYBINDINGS:
-      return "KEYBINDINGS";
+      return "KEYBINDINGS-B";
     case META_DEBUG_SYNC:
-      return "SYNC";
+      return "SYNC-B";
     case META_DEBUG_STARTUP:
-      return "STARTUP";
+      return "STARTUP-B";
     case META_DEBUG_PREFS:
-      return "PREFS";
+      return "PREFS-B";
     case META_DEBUG_EDGE_RESISTANCE:
-      return "EDGE_RESISTANCE";
+      return "EDGE_RESISTANCE-B";
     case META_DEBUG_DBUS:
-      return "DBUS";
+      return "DBUS-B";
     case META_DEBUG_INPUT:
-      return "INPUT";
+      return "INPUT-B";
     case META_DEBUG_WAYLAND:
-      return "WAYLAND";
+      return "WAYLAND-B";
     case META_DEBUG_KMS:
-      return "KMS";
+      return "KMS-B";
     case META_DEBUG_SCREEN_CAST:
-      return "SCREEN_CAST";
+      return "SCREEN_CAST-B";
     case META_DEBUG_REMOTE_DESKTOP:
-      return "REMOTE_DESKTOP";
+      return "REMOTE_DESKTOP-B";
     case META_DEBUG_BACKEND:
-      return "BACKEND";
+      return "BACKEND-B";
     case META_DEBUG_RENDER:
-      return "RENDER";
+      return "RENDER-B";
     case META_DEBUG_COLOR:
-      return "COLOR";
+      return "COLOR-B";
     case META_DEBUG_VERBOSE:
-      return "VERBOSE";
+      return "VERBOSE-B";
     case META_DEBUG_INPUT_EVENTS:
-      return "INPUT_EVENTS";
+      return "INPUT_EVENTS-B";
     case META_DEBUG_EIS:
-      return "EIS";
+      return "EIS-B";
     case META_DEBUG_KMS_DEADLINE:
-      return "KMS_DEADLINE";
+      return "KMS_DEADLINE-B";
     case META_DEBUG_SESSION_MANAGEMENT:
-      return "SESSION_MANAGEMENT";
+      return "SESSION_MANAGEMENT-B";
     case META_DEBUG_X11:
-      return "X11";
+      return "X11-B";
     case META_DEBUG_WORKSPACES:
-      return "WORKSPACES";
+      return "WORKSPACES-B";
     }
 
   return "WM";
