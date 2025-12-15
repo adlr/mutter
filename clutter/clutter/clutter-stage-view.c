@@ -1301,6 +1301,7 @@ clutter_stage_view_set_property (GObject      *object,
       break;
     case PROP_LAYOUT:
       layout = g_value_get_boxed (value);
+      g_warning ("layout set to %d %d %d %d", layout->x, layout->y, layout->width, layout->height);
       priv->layout = *layout;
       break;
     case PROP_FRAMEBUFFER:
