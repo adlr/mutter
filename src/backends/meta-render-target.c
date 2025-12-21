@@ -146,20 +146,29 @@ meta_render_target_get_output_frame (MetaRenderTarget *render_target)
                   other_output_info->tile_info.tile_w, other_output_info->tile_info.tile_h,
                   other_output_info->tile_info.loc_h_tile, other_output_info->tile_info.loc_v_tile);
     }
-  mtk_rectangle_from_graphene_rect (&crtc_config->layout,
-                                    MTK_ROUNDING_STRATEGY_ROUND,
-                                    &output_frame);
-  // Handle all crtcs after the first by unioning them together
-  for (guint i = 1; i < render_target->crtcs->len; i++)
+  // If only one, just use that size
+  if (render_target->crtcs->len == 1) {
+    output_frame = MTK_RECTANGLE_INIT (0, 0, crtc_mode_info->width, crtc_mode_info->height);
+    return output_frame;
+  }
+  // Else get full size from tile info
+  int max_h = 0;
+  int max_v = 0;
+  MetaOutput *max_output = NULL;
+  for (guint i = 0; i < render_target->outputs->len; i++)
     {
-      MetaCrtc *crtc = g_ptr_array_index (render_target->crtcs, i);
-      MtkRectangle other_view_layout;
-      crtc_config = meta_crtc_get_config (crtc);
-      mtk_rectangle_from_graphene_rect (&crtc_config->layout,
-                                        MTK_ROUNDING_STRATEGY_ROUND,
-                                        &other_view_layout);
-      mtk_rectangle_union (&output_frame, &other_view_layout, &output_frame);
+      MetaOutput *output = g_ptr_array_index (render_target->outputs, i);
+      const MetaOutputInfo *output_info = meta_output_get_info (output);
+      if (output_info->tile_info.loc_h_tile > max_h || output_info->tile_info.loc_v_tile > max_v)
+        {
+          max_output = output;
+          max_h = output_info->tile_info.loc_h_tile;
+          max_v = output_info->tile_info.loc_v_tile;
+        }
     }
+  g_warn_if_fail (max_output != NULL);
+  MtkRectangle tmp = meta_render_target_get_output_tile_frame (render_target, max_output);
+  output_frame = MTK_RECTANGLE_INIT (0, 0, tmp.x + tmp.width, tmp.y + tmp.height);
   return output_frame;
 }
 
