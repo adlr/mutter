@@ -98,29 +98,6 @@ meta_render_target_get_outputs (MetaRenderTarget *render_target)
   return render_target->outputs;
 }
 
-MtkRectangle
-meta_render_target_get_view_layout (MetaRenderTarget *render_target)
-{
-  MtkRectangle view_layout;
-  g_warn_if_fail (render_target->crtcs->len > 0);
-  const MetaCrtcConfig *crtc_config = meta_crtc_get_config (g_ptr_array_index (render_target->crtcs, 0));
-  mtk_rectangle_from_graphene_rect (&crtc_config->layout,
-                                    MTK_ROUNDING_STRATEGY_ROUND,
-                                    &view_layout);
-  // Handle all crtcs after the first by unioning them together
-  for (guint i = 1; i < render_target->crtcs->len; i++)
-    {
-      MetaCrtc *crtc = g_ptr_array_index (render_target->crtcs, i);
-      MtkRectangle other_view_layout;
-      crtc_config = meta_crtc_get_config (crtc);
-      mtk_rectangle_from_graphene_rect (&crtc_config->layout,
-                                        MTK_ROUNDING_STRATEGY_ROUND,
-                                        &other_view_layout);
-      mtk_rectangle_union (&view_layout, &other_view_layout, &view_layout);
-    }
-  return view_layout;
-}
-
 MetaGpu *
 meta_render_target_get_gpu (MetaRenderTarget *render_target)
 {
@@ -169,6 +146,42 @@ meta_render_target_get_output_frame (MetaRenderTarget *render_target)
   g_warn_if_fail (max_output != NULL);
   MtkRectangle tmp = meta_render_target_get_output_tile_frame (render_target, max_output);
   output_frame = MTK_RECTANGLE_INIT (0, 0, tmp.x + tmp.width, tmp.y + tmp.height);
+  return output_frame;
+}
+
+MtkRectangle
+meta_render_target_get_view_layout (MetaRenderTarget *render_target)
+{
+  MtkRectangle output_frame;
+  const MetaCrtcConfig *crtc_config = meta_crtc_get_config (g_ptr_array_index (render_target->crtcs, 0));
+  const MetaCrtcModeInfo *crtc_mode_info = meta_crtc_mode_get_info (crtc_config->mode);
+  meta_topic (META_DEBUG_KMS, "crtc config layout %f %f %f %f vs mode info %d %d",
+              graphene_rect_get_x (&crtc_config->layout), graphene_rect_get_y (&crtc_config->layout),
+              graphene_rect_get_width (&crtc_config->layout), graphene_rect_get_height (&crtc_config->layout),
+              crtc_mode_info->width, crtc_mode_info->height);
+  for (guint i = 0; i < render_target->outputs->len; i++)
+    {
+      MetaOutput *other_output = g_ptr_array_index (render_target->outputs, i);
+      const MetaOutputInfo *other_output_info = meta_output_get_info (other_output);
+      meta_topic (META_DEBUG_KMS, "Also Tile into %u/%u: size: %d %d loc: %d %d",
+                  i+1, render_target->outputs->len,
+                  other_output_info->tile_info.tile_w, other_output_info->tile_info.tile_h,
+                  other_output_info->tile_info.loc_h_tile, other_output_info->tile_info.loc_v_tile);
+    }
+  mtk_rectangle_from_graphene_rect (&crtc_config->layout,
+                                    MTK_ROUNDING_STRATEGY_ROUND,
+                                    &output_frame);
+  // Handle all crtcs after the first by unioning them together
+  for (guint i = 1; i < render_target->crtcs->len; i++)
+    {
+      MetaCrtc *crtc = g_ptr_array_index (render_target->crtcs, i);
+      MtkRectangle other_view_layout;
+      crtc_config = meta_crtc_get_config (crtc);
+      mtk_rectangle_from_graphene_rect (&crtc_config->layout,
+                                        MTK_ROUNDING_STRATEGY_ROUND,
+                                        &other_view_layout);
+      mtk_rectangle_union (&output_frame, &other_view_layout, &output_frame);
+    }
   return output_frame;
 }
 

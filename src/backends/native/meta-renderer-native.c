@@ -1434,15 +1434,16 @@ meta_renderer_native_create_view (MetaRenderer        *renderer,
   float scale;
   int onscreen_width;
   int onscreen_height;
-  MtkRectangle view_layout = meta_render_target_get_output_frame (render_target);
+  MtkRectangle view_layout = meta_render_target_get_view_layout (render_target);
+  MtkRectangle output_frame = meta_render_target_get_output_frame (render_target);
   MetaRendererViewNative *view_native;
   EGLSurface egl_surface;
   GError *local_error = NULL;
 
   crtc_config = meta_crtc_get_config (meta_render_target_get_primary_crtc (render_target));
   crtc_mode_info = meta_crtc_mode_get_info (crtc_config->mode);
-  onscreen_width = view_layout.width;
-  onscreen_height = view_layout.height;
+  onscreen_width = output_frame.width;
+  onscreen_height = output_frame.height;
 
   if (META_IS_CRTC_KMS (meta_render_target_get_primary_crtc (render_target)))
     {
