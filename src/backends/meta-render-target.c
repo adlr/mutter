@@ -132,6 +132,20 @@ meta_render_target_get_output_frame (MetaRenderTarget *render_target)
 {
   MtkRectangle output_frame;
   const MetaCrtcConfig *crtc_config = meta_crtc_get_config (g_ptr_array_index (render_target->crtcs, 0));
+  const MetaCrtcModeInfo *crtc_mode_info = meta_crtc_mode_get_info (crtc_config->mode);
+  meta_topic (META_DEBUG_KMS, "crtc config layout %f %f %f %f vs mode info %d %d",
+              graphene_rect_get_x (&crtc_config->layout), graphene_rect_get_y (&crtc_config->layout),
+              graphene_rect_get_width (&crtc_config->layout), graphene_rect_get_height (&crtc_config->layout),
+              crtc_mode_info->width, crtc_mode_info->height);
+  for (guint i = 0; i < render_target->outputs->len; i++)
+    {
+      MetaOutput *other_output = g_ptr_array_index (render_target->outputs, i);
+      const MetaOutputInfo *other_output_info = meta_output_get_info (other_output);
+      meta_topic (META_DEBUG_KMS, "Also Tile into %u/%u: size: %d %d loc: %d %d",
+                  i+1, render_target->outputs->len,
+                  other_output_info->tile_info.tile_w, other_output_info->tile_info.tile_h,
+                  other_output_info->tile_info.loc_h_tile, other_output_info->tile_info.loc_v_tile);
+    }
   mtk_rectangle_from_graphene_rect (&crtc_config->layout,
                                     MTK_ROUNDING_STRATEGY_ROUND,
                                     &output_frame);
@@ -158,6 +172,10 @@ meta_render_target_get_output_tile_frame (MetaRenderTarget *render_target, MetaO
     {
       MetaOutput *other_output = g_ptr_array_index (render_target->outputs, i);
       const MetaOutputInfo *other_output_info = meta_output_get_info (other_output);
+      meta_topic (META_DEBUG_KMS, "Tile into %u/%u: size: %d %d loc: %d %d",
+                  i+1, render_target->outputs->len,
+                  other_output_info->tile_info.tile_w, other_output_info->tile_info.tile_h,
+                  other_output_info->tile_info.loc_h_tile, other_output_info->tile_info.loc_v_tile);
       if (output_info->tile_info.loc_v_tile == other_output_info->tile_info.loc_v_tile &&
           output_info->tile_info.loc_h_tile > other_output_info->tile_info.loc_h_tile)
         {
@@ -169,6 +187,7 @@ meta_render_target_get_output_tile_frame (MetaRenderTarget *render_target, MetaO
           tile_frame.y += other_output_info->tile_info.tile_h;
         }
     }
+  meta_topic (META_DEBUG_KMS, "Final frame: %d %d %d %d", tile_frame.x, tile_frame.y, tile_frame.width, tile_frame.height);
   return tile_frame;
 }
 

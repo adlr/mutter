@@ -689,6 +689,7 @@ meta_onscreen_native_flip_render_target (CoglOnscreen           *onscreen,
   GPtrArray *crtcs = meta_render_target_get_crtcs (render_target);
   GPtrArray *outputs = meta_render_target_get_outputs (render_target);
   MtkRectangle output_frame = MTK_RECTANGLE_INIT (0, 0, meta_drm_buffer_get_width (buffer), meta_drm_buffer_get_height (buffer));
+  meta_topic (META_DEBUG_KMS, "meta drm buffer size: %d %d", output_frame.width, output_frame.height);
 
   g_assert (crtcs->len == outputs->len);
   for (guint i = 0; i < crtcs->len; i++)
@@ -3027,6 +3028,7 @@ meta_onscreen_native_new (MetaRendererNative *renderer_native,
   MetaOutput *output = meta_render_target_get_primary_output (render_target);
   const MetaOutputInfo *output_info = meta_output_get_info (output);
 
+  meta_topic (META_DEBUG_KMS, "meta_onscreen_native_new created with size %d %d", width, height);
   driver_config = (CoglFramebufferDriverConfig) {
     .type = COGL_FRAMEBUFFER_DRIVER_TYPE_BACK,
   };
