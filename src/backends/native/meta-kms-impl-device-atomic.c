@@ -1105,10 +1105,12 @@ meta_kms_impl_device_atomic_process_update (MetaKmsImplDevice *impl_device,
   int fd;
   uint32_t commit_flags = 0;
   int ret;
+  static int counter = 0;
+  int my_counter = ++counter;
 
   blob_ids = g_array_new (FALSE, TRUE, sizeof (uint32_t));
 
-  meta_topic (META_DEBUG_KMS, "[atomic] Processing update");
+  meta_topic (META_DEBUG_KMS, "[atomic] Processing update %d", my_counter);
 
   req = drmModeAtomicAlloc ();
   if (!req)
@@ -1198,6 +1200,10 @@ meta_kms_impl_device_atomic_process_update (MetaKmsImplDevice *impl_device,
                    "drmModeAtomicCommit: %s", g_strerror (-ret));
       goto err;
     }
+  else
+    {
+      meta_topic (META_DEBUG_KMS, "[atomic] KMS update %d success", my_counter);
+    }
 
   drmModeAtomicFree (req);
 
@@ -1215,7 +1221,7 @@ meta_kms_impl_device_atomic_process_update (MetaKmsImplDevice *impl_device,
   return meta_kms_feedback_new_passed (NULL);
 
 err:
-  meta_topic (META_DEBUG_KMS, "[atomic] KMS update failed: %s", error->message);
+  meta_topic (META_DEBUG_KMS, "[atomic] KMS update %d failed: %s", my_counter, error->message);
 
   if (req)
     drmModeAtomicFree (req);
