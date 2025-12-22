@@ -1569,6 +1569,7 @@ do_process (MetaKmsImplDevice   *impl_device,
 
   if (latch_crtcs)
     {
+      meta_topic (META_DEBUG_KMS, "Filtering update for %d latch_crtcs", latch_crtcs->len);
       meta_kms_crtc_ptr_array_foreach (MetaKmsCrtc *latch_crtc, latch_crtcs)
         {
           update = meta_kms_impl_filter_update (impl, latch_crtc, update, flags);
@@ -1837,6 +1838,8 @@ ensure_crtc_frame (MetaKmsImplDevice   *impl_device,
                                              timer_fd,
                                              crtc_frame_deadline_dispatch,
                                              crtc_frame);
+      meta_topic (META_DEBUG_KMS, "Calling crtc_frame_deadline_dispatch from:");
+      _cogl_debug_log_backtrace ();
 
       name = g_strdup_printf ("[mutter] KMS deadline clock (crtc: %u, %s)",
                               meta_kms_crtc_get_id (meta_crtc_kms_ptr_array_get_primary (latch_crtcs)),

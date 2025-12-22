@@ -409,7 +409,7 @@ maybe_update_cursor_plane (MetaKmsCursorManagerImpl  *cursor_manager_impl,
       meta_topic (META_DEBUG_KMS, "for crtc %d set cursor dst: %d %d %d %d",
                   meta_kms_crtc_get_id (crtc),
                   dst_rect.x, dst_rect.y, dst_rect.width, dst_rect.height);
-
+      _cogl_debug_log_backtrace ();
       plane_assignment = meta_kms_update_assign_plane (update,
                                                        crtc, cursor_plane,
                                                        buffer,
@@ -801,6 +801,8 @@ meta_kms_cursor_manager_update_sprite (MetaKmsCursorManager   *cursor_manager,
   if (hotspot)
     data->hotspot = *hotspot;
 
+  meta_topic (META_DEBUG_KMS, "update_sprite_in_impl calling from:");
+  _cogl_debug_log_backtrace ();
   meta_thread_post_impl_task (META_THREAD (cursor_manager->kms),
                               update_sprite_in_impl,
                               data, g_free,
