@@ -406,6 +406,9 @@ maybe_update_cursor_plane (MetaKmsCursorManagerImpl  *cursor_manager_impl,
         .width = (int) round (cursor_rect.size.width),
         .height = (int) round (cursor_rect.size.height),
       };
+      meta_topic (META_DEBUG_KMS, "for crtc %d set cursor dst: %d %d %d %d",
+                  meta_kms_crtc_get_id (crtc),
+                  dst_rect.x, dst_rect.y, dst_rect.width, dst_rect.height);
 
       plane_assignment = meta_kms_update_assign_plane (update,
                                                        crtc, cursor_plane,
@@ -460,6 +463,10 @@ update_filter_cb (MetaKmsImpl       *impl,
 {
   MetaThreadImpl *thread_impl = META_THREAD_IMPL (impl);
   MetaKmsCursorManagerImpl *cursor_manager_impl = user_data;
+  meta_topic (META_DEBUG_KMS, "update_filter_cb (%p, %d, %p, %s, %p) called", impl,
+              meta_kms_crtc_get_id (crtc), update,
+              flags & META_KMS_UPDATE_FLAG_MODE_SET ? "MODE_SET" : "",
+              user_data);
 
   if (flags & META_KMS_UPDATE_FLAG_TEST_ONLY)
     return update;
