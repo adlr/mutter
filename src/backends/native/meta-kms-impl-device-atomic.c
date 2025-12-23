@@ -1193,11 +1193,15 @@ meta_kms_impl_device_atomic_process_update (MetaKmsImplDevice *impl_device,
               commit_flags_string (commit_flags));
 
   fd = meta_kms_impl_device_get_fd (impl_device);
+  struct timespec before;
+  clock_gettime (CLOCK_BOOTTIME, &before);
   ret = drmModeAtomicCommit (fd, req, commit_flags, impl_device);
+  struct timespec after;
+  clock_gettime (CLOCK_BOOTTIME, &after);
   if (ret < 0)
     {
       g_set_error (&error, G_IO_ERROR, g_io_error_from_errno (-ret),
-                   "drmModeAtomicCommit: %s", g_strerror (-ret));
+                   "drmModeAtomicCommit: (%d) %s", ret, g_strerror (-ret));
       goto err;
     }
   else
@@ -1221,7 +1225,10 @@ meta_kms_impl_device_atomic_process_update (MetaKmsImplDevice *impl_device,
   return meta_kms_feedback_new_passed (NULL);
 
 err:
-  meta_topic (META_DEBUG_KMS, "[atomic] KMS update %d failed: %s", my_counter, error->message);
+  meta_topic (META_DEBUG_KMS, "[atomic] KMS update %d failed in %lld.%.9ld to %lld.%.9ld: %s", my_counter,
+    (long long)before.tv_sec, before.tv_nsec,
+    (long long)after.tv_sec, after.tv_nsec,
+    error->message);
 
   if (req)
     drmModeAtomicFree (req);
