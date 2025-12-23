@@ -1742,6 +1742,12 @@ crtc_frame_free (CrtcFrame *crtc_frame)
 {
   if (--crtc_frame->refcnt != 0)
     return;
+  meta_topic (META_DEBUG_KMS, "Deleted crtc_frame for %d crtcs:", crtc_frame->crtcs->len);
+  meta_kms_crtc_ptr_array_foreach (MetaKmsCrtc *kms_crtc, crtc_frame->crtcs)
+    {
+      meta_topic (META_DEBUG_KMS, "  CRTC %d", meta_kms_crtc_get_id (kms_crtc));
+    }
+
   g_clear_fd (&crtc_frame->deadline.timer_fd, NULL);
   g_clear_pointer (&crtc_frame->crtcs, g_ptr_array_unref);
   g_clear_pointer (&crtc_frame->deadline.source, g_source_destroy);
@@ -1765,6 +1771,11 @@ get_crtc_frame (MetaKmsImplDevice   *impl_device,
       if (crtc_frame)
         return crtc_frame;
     }
+  // g_autoptr (GList) hash_keys = g_hash_table_get_keys (priv->crtc_frames);
+  // if (hash_keys)
+  //   {
+  //     return g_hash_table_lookup (priv->crtc_frames, hash_keys->data);
+  //   }
   return NULL;
 }
 
@@ -1822,6 +1833,30 @@ ensure_crtc_frame (MetaKmsImplDevice   *impl_device,
         {
           crtc_frame->refcnt++;
           g_hash_table_insert (priv->crtc_frames, latch_crtc, crtc_frame);
+        }
+      meta_topic (META_DEBUG_KMS, "Created crtc_frame for %d crtcs:", latch_crtcs->len);
+      meta_kms_crtc_ptr_array_foreach (MetaKmsCrtc *kms_crtc, latch_crtcs)
+        {
+          meta_topic (META_DEBUG_KMS, "  CRTC %d", meta_kms_crtc_get_id (kms_crtc));
+        }
+      // if (latch_crtcs->len == 1)
+      //   {
+      //     meta_topic (META_DEBUG_KMS, "Created crtc_frame with only 1 latch_crtc at");
+      //     _cogl_debug_log_backtrace ();
+      //   }
+    }
+  else
+    {
+      // Did have a frame, but make sure to add new crtcs to it.
+      meta_kms_crtc_ptr_array_foreach (MetaKmsCrtc *latch_crtc, latch_crtcs)
+        {
+          if (!g_ptr_array_find (crtc_frame->crtcs, latch_crtc, NULL))
+            {
+              g_ptr_array_add (crtc_frame->crtcs, latch_crtc);
+              meta_topic (META_DEBUG_KMS, "Added CRTC %d to crtc_frame", meta_kms_crtc_get_id (latch_crtc));
+              crtc_frame->refcnt++;
+              g_hash_table_insert (priv->crtc_frames, latch_crtc, crtc_frame);
+            }
         }
     }
 
