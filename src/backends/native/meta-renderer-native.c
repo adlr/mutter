@@ -1225,6 +1225,11 @@ meta_renderer_native_queue_modes_reset (MetaRendererNative *renderer_native)
               clutter_stage_view_get_layout (stage_view, &view_layout);
               view_scale = clutter_stage_view_get_scale (stage_view);
 
+              output_layout.x /= view_scale;
+              output_layout.y /= view_scale;
+              output_layout.width /= view_scale;
+              output_layout.height /= view_scale;
+
               meta_topic (META_DEBUG_KMS, "output_layout %d %d %d %d, view_layout %d %d %d %d scale %f",
                 output_layout.x, output_layout.y,
                 output_layout.width, output_layout.height,
