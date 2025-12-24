@@ -1771,11 +1771,11 @@ get_crtc_frame (MetaKmsImplDevice   *impl_device,
       if (crtc_frame)
         return crtc_frame;
     }
-  // g_autoptr (GList) hash_keys = g_hash_table_get_keys (priv->crtc_frames);
-  // if (hash_keys)
-  //   {
-  //     return g_hash_table_lookup (priv->crtc_frames, hash_keys->data);
-  //   }
+  g_autoptr (GList) hash_keys = g_hash_table_get_keys (priv->crtc_frames);
+  if (hash_keys)
+    {
+      return g_hash_table_lookup (priv->crtc_frames, hash_keys->data);
+    }
   return NULL;
 }
 
@@ -1873,8 +1873,6 @@ ensure_crtc_frame (MetaKmsImplDevice   *impl_device,
                                              timer_fd,
                                              crtc_frame_deadline_dispatch,
                                              crtc_frame);
-      meta_topic (META_DEBUG_KMS, "Calling crtc_frame_deadline_dispatch from:");
-      _cogl_debug_log_backtrace ();
 
       name = g_strdup_printf ("[mutter] KMS deadline clock (crtc: %u, %s)",
                               meta_kms_crtc_get_id (meta_crtc_kms_ptr_array_get_primary (latch_crtcs)),
