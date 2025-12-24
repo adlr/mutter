@@ -267,6 +267,7 @@ calculate_cursor_rect (CrtcStateImpl          *crtc_state_impl,
   int crtc_x, crtc_y, crtc_width, crtc_height;
   int buffer_width, buffer_height;
   graphene_rect_t cursor_rect;
+  int backup_crtc_x, backup_crtc_y;
 
   crtc_x = (int) ((x - crtc_state_impl->layout.origin.x) * crtc_state_impl->scale);
   crtc_y = (int) ((y - crtc_state_impl->layout.origin.y) * crtc_state_impl->scale);
@@ -275,12 +276,17 @@ calculate_cursor_rect (CrtcStateImpl          *crtc_state_impl,
   crtc_height = (int) roundf (crtc_state_impl->layout.size.height *
                               crtc_state_impl->scale);
 
+  backup_crtc_x = crtc_x;
+  backup_crtc_y = crtc_y;
   mtk_monitor_transform_transform_point (crtc_state_impl->transform,
                                          &crtc_width, &crtc_height,
                                          &crtc_x, &crtc_y);
 
   buffer_width = meta_drm_buffer_get_width (buffer);
   buffer_height = meta_drm_buffer_get_height (buffer);
+  meta_topic (META_DEBUG_KMS, "debug cursor dst_rect: x: %f lox: %f scale: %f c_w: %d crtc_x %d/%d hotx: %f",
+    x, crtc_state_impl->layout.origin.x, crtc_state_impl->scale,
+    crtc_width, backup_crtc_x, crtc_x, hotspot->x);
 
   cursor_rect = (graphene_rect_t) {
     .origin = {
