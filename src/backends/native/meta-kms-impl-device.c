@@ -1771,11 +1771,11 @@ get_crtc_frame (MetaKmsImplDevice   *impl_device,
       if (crtc_frame)
         return crtc_frame;
     }
-  g_autoptr (GList) hash_keys = g_hash_table_get_keys (priv->crtc_frames);
-  if (hash_keys)
-    {
-      return g_hash_table_lookup (priv->crtc_frames, hash_keys->data);
-    }
+  // g_autoptr (GList) hash_keys = g_hash_table_get_keys (priv->crtc_frames);
+  // if (hash_keys)
+  //   {
+  //     return g_hash_table_lookup (priv->crtc_frames, hash_keys->data);
+  //   }
   return NULL;
 }
 
