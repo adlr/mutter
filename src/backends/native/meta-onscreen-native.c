@@ -686,6 +686,8 @@ meta_onscreen_native_flip_render_target (CoglOnscreen           *onscreen,
 {
   MetaFrameNative *frame_native = meta_frame_native_from_frame (frame);
   MetaDrmBuffer *buffer = meta_frame_native_get_buffer (frame_native);
+  if (!buffer)
+    return FALSE;
   GPtrArray *crtcs = meta_render_target_get_crtcs (render_target);
   GPtrArray *outputs = meta_render_target_get_outputs (render_target);
   MtkRectangle output_frame = MTK_RECTANGLE_INIT (0, 0, meta_drm_buffer_get_width (buffer), meta_drm_buffer_get_height (buffer));
