@@ -48,7 +48,8 @@ meta_render_target_native_get_kms_crtc_array (MetaRenderTarget *render_target);
   ((MetaKmsCrtc *) g_ptr_array_index (arr, 0))
 #define meta_crtc_kms_ptr_array_get_device(arr) \
   ((MetaKmsDevice *) meta_kms_crtc_get_device (meta_crtc_kms_ptr_array_get_primary (arr)))
-int64_t meta_crtc_kms_ptr_array_get_deadline_evasion (MetaKmsCrtcPtrArray *arr);
+#define meta_crtc_kms_ptr_array_get_deadline_evasion(arr) \
+  meta_kms_crtc_get_deadline_evasion (meta_crtc_kms_ptr_array_get_primary (arr))
 
 int64_t meta_render_target_native_get_deadline_evasion (MetaRenderTarget *render_target);
 

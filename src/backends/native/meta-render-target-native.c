@@ -74,17 +74,6 @@ meta_render_target_native_get_kms_crtc_array (MetaRenderTarget *render_target)
 }
 
 int64_t
-meta_crtc_kms_ptr_array_get_deadline_evasion (MetaKmsCrtcPtrArray *arr)
-{
-  int64_t ret = INT64_MIN;
-  meta_kms_crtc_ptr_array_foreach (MetaKmsCrtc * kms_crtc, arr)
-  {
-    ret = MAX (ret, meta_kms_crtc_get_deadline_evasion (kms_crtc));
-  }
-  return ret;
-}
-
-int64_t
 meta_render_target_native_get_deadline_evasion (MetaRenderTarget *render_target)
 {
   GPtrArray *crtcs = meta_render_target_get_crtcs (render_target);
