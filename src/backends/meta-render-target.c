@@ -114,6 +114,9 @@ meta_render_target_get_output_frame (MetaRenderTarget *render_target)
   MtkRectangle output_frame;
   const MetaCrtcConfig *crtc_config = meta_crtc_get_config (g_ptr_array_index (render_target->crtcs, 0));
   const MetaCrtcModeInfo *crtc_mode_info = meta_crtc_mode_get_info (crtc_config->mode);
+  int width = 0;
+  int height = 0;
+
   /* If only one, just use that size */
   if (render_target->crtcs->len == 1)
     {
@@ -121,12 +124,11 @@ meta_render_target_get_output_frame (MetaRenderTarget *render_target)
       return output_frame;
     }
   /* Else get full size from tile info */
-  int width = 0;
-  int height = 0;
   for (guint i = 0; i < render_target->outputs->len; i++)
     {
       MetaOutput *output = g_ptr_array_index (render_target->outputs, i);
       const MetaOutputInfo *output_info = meta_output_get_info (output);
+
       if (output_info->tile_info.loc_h_tile == 0)
         height += output_info->tile_info.tile_h;
       if (output_info->tile_info.loc_v_tile == 0)
