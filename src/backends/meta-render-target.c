@@ -64,14 +64,14 @@ meta_render_target_add (MetaRenderTarget *render_target,
 MetaCrtc *
 meta_render_target_get_primary_crtc (MetaRenderTarget *render_target)
 {
-  g_warn_if_fail (render_target->crtcs->len > 0);
+  g_return_val_if_fail (render_target->crtcs->len > 0, NULL);
   return g_ptr_array_index (render_target->crtcs, 0);
 }
 
 MetaOutput *
 meta_render_target_get_primary_output (MetaRenderTarget *render_target)
 {
-  g_warn_if_fail (render_target->outputs->len > 0);
+  g_return_val_if_fail (render_target->outputs->len > 0, NULL);
   return g_ptr_array_index (render_target->outputs, 0);
 }
 
@@ -79,6 +79,7 @@ const char *
 meta_render_target_get_name (MetaRenderTarget *render_target)
 {
   MetaOutput *primary_output = meta_render_target_get_primary_output (render_target);
+
   return meta_output_get_name (primary_output);
 }
 
@@ -103,7 +104,7 @@ meta_render_target_get_view_layout (MetaRenderTarget *render_target)
   mtk_rectangle_from_graphene_rect (&crtc_config->layout,
                                     MTK_ROUNDING_STRATEGY_ROUND,
                                     &view_layout);
-  // Handle all crtcs after the first by unioning them together
+  /* Handle all crtcs after the first by unioning them together */
   for (guint i = 1; i < render_target->crtcs->len; i++)
     {
       MetaCrtc *crtc = g_ptr_array_index (render_target->crtcs, i);
