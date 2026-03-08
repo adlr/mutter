@@ -127,14 +127,14 @@ meta_render_target_get_gpu (MetaRenderTarget *render_target)
 }
 
 static void
-meta_render_target_dispose (GObject *object)
+meta_render_target_finalize (GObject *object)
 {
   MetaRenderTarget *render_target = META_RENDER_TARGET (object);
 
   g_ptr_array_foreach (render_target->crtcs, (GFunc) g_object_unref, NULL);
-  g_ptr_array_unref (render_target->crtcs);
+  g_clear_pointer (&render_target->crtcs, g_ptr_array_unref);
   g_ptr_array_foreach (render_target->outputs, (GFunc) g_object_unref, NULL);
-  g_ptr_array_unref (render_target->outputs);
+  g_clear_pointer (&render_target->outputs, g_ptr_array_unref);
 
   G_OBJECT_CLASS (meta_render_target_parent_class)->dispose (object);
 }
@@ -151,5 +151,5 @@ meta_render_target_class_init (MetaRenderTargetClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-  object_class->dispose = meta_render_target_dispose;
+  object_class->finalize = meta_render_target_finalize;
 }
