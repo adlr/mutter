@@ -1932,7 +1932,7 @@ ensure_crtc_frame (MetaKmsImplDevice   *impl_device,
     }
   else
     {
-      // Did have a frame, but make sure to add new crtcs to it.
+      /* Did have a frame, but make sure to add new crtcs to it. */
       meta_kms_crtc_ptr_array_foreach (MetaKmsCrtc * latch_crtc, latch_crtcs)
       {
         if (!g_ptr_array_find (crtc_frame->crtcs, latch_crtc, NULL))
