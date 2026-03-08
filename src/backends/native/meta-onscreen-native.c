@@ -788,7 +788,7 @@ assign_primary_plane (MetaCrtcKms            *crtc_kms,
 }
 
 static gboolean
-eta_onscreen_native_flip_render_target (CoglOnscreen           *onscreen,
+meta_onscreen_native_flip_render_target (CoglOnscreen           *onscreen,
                                          ClutterFrame           *frame,
                                          MetaRendererView       *view,
                                          MetaRenderTarget       *render_target,
@@ -2457,8 +2457,6 @@ meta_onscreen_native_finish_frame (CoglOnscreen *onscreen,
                                    ClutterFrame *frame)
 {
   MetaOnscreenNative *onscreen_native = META_ONSCREEN_NATIVE (onscreen);
-  // MetaCrtc *crtc = onscreen_native->crtc;
-  // MetaKmsCrtc *kms_crtc = meta_crtc_kms_get_kms_crtc (META_CRTC_KMS (crtc));
   MetaKmsDevice *kms_device = meta_render_target_native_get_kms_device (onscreen_native->render_target);
   MetaFrameNative *frame_native = meta_frame_native_from_frame (frame);
   MetaKmsUpdate *kms_update;
