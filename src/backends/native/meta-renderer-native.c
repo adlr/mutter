@@ -1540,8 +1540,7 @@ meta_renderer_native_create_view (MetaRenderer        *renderer,
   MetaRendererViewNative *view_native;
   EGLSurface egl_surface;
   GError *local_error = NULL;
-  // ADLRTODO: don't leak render_target here. Instead, receive it as argument to this function.
-  MetaRenderTarget *render_target = meta_render_target_new ();
+  g_autoptr (MetaRenderTarget) render_target = meta_render_target_new ();
   meta_render_target_add (render_target, crtc, output);
 
   crtc_config = meta_crtc_get_config (crtc);
