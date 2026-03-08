@@ -632,7 +632,7 @@ meta_check_monitor_configuration (MetaContext           *context,
                                          &view_layout);
           if (expect->n_tiled_monitors > 0)
             {
-              // In a tiled setup, view_layout may include all tiles for the given monitor.
+              /* In a tiled setup, view_layout may include all tiles for the given monitor. */
               MtkRectangle crtc_tile;
               mtk_rectangle_from_graphene_rect (&crtc_config->layout, MTK_ROUNDING_STRATEGY_ROUND, &crtc_tile);
               mtk_rectangle_intersect (&view_layout, &crtc_tile, &view_layout);
