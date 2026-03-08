@@ -28,6 +28,7 @@ meta_render_target_native_get_crtc_kmses (MetaRenderTarget *render_target)
 {
   GPtrArray *crtcs = meta_render_target_get_crtcs (render_target);
   GPtrArray *ret = g_ptr_array_new_full (crtcs->len, g_object_unref);
+
   for (guint i = 0; i < crtcs->len; i++)
     {
       g_ptr_array_add (ret, g_object_ref (META_CRTC_KMS (g_ptr_array_index (crtcs, i))));
@@ -40,6 +41,7 @@ meta_render_target_native_get_kms_crtcs (MetaRenderTarget *render_target)
 {
   GPtrArray *crtcs = meta_render_target_get_crtcs (render_target);
   GPtrArray *ret = g_ptr_array_new_full (crtcs->len, g_object_unref);
+
   for (guint i = 0; i < crtcs->len; i++)
     {
       g_ptr_array_add (ret, g_object_ref (meta_crtc_kms_get_kms_crtc (META_CRTC_KMS (g_ptr_array_index (crtcs, i)))));
