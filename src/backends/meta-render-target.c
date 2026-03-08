@@ -101,6 +101,7 @@ meta_render_target_get_view_layout (MetaRenderTarget *render_target)
   MtkRectangle view_layout;
   g_warn_if_fail (render_target->crtcs->len > 0);
   const MetaCrtcConfig *crtc_config = meta_crtc_get_config (g_ptr_array_index (render_target->crtcs, 0));
+
   mtk_rectangle_from_graphene_rect (&crtc_config->layout,
                                     MTK_ROUNDING_STRATEGY_ROUND,
                                     &view_layout);
@@ -109,6 +110,7 @@ meta_render_target_get_view_layout (MetaRenderTarget *render_target)
     {
       MetaCrtc *crtc = g_ptr_array_index (render_target->crtcs, i);
       MtkRectangle other_view_layout;
+
       crtc_config = meta_crtc_get_config (crtc);
       mtk_rectangle_from_graphene_rect (&crtc_config->layout,
                                         MTK_ROUNDING_STRATEGY_ROUND,
