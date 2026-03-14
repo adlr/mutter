@@ -177,7 +177,7 @@
     </key>
 
     <key name="rotate-monitor" type="as">
-      <default><![CDATA[['XF86RotateWindows']]]></default>
+      <default><![CDATA[['<Super>r']]]></default>
       <summary>Rotates the built-in monitor configuration</summary>
     </key>
 
