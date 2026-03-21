@@ -539,6 +539,7 @@ update_rotations (MetaKmsPlane *plane)
       if (rotation->enum_values[i].valid)
         plane->rotations |= rotation->enum_values[i].bitmask;
     }
+  plane->rotations &= 0xf;  /* hack to fix x1 carbon gen 13 */
 }
 
 static MetaKmsResourceChanges
