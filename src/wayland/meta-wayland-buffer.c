@@ -898,6 +898,7 @@ meta_wayland_buffer_process_damage (MetaWaylandBuffer *buffer,
 static CoglScanout *
 try_acquire_egl_image_scanout (MetaWaylandBuffer     *buffer,
                                CoglOnscreen          *onscreen,
+                               ClutterStageView      *stage_view,
                                const graphene_rect_t *src_rect,
                                const MtkRectangle    *dst_rect)
 {
@@ -944,7 +945,7 @@ try_acquire_egl_image_scanout (MetaWaylandBuffer     *buffer,
   scanout = cogl_scanout_new (COGL_SCANOUT_BUFFER (g_steal_pointer (&fb)),
                               dst_rect);
   cogl_scanout_set_src_rect (scanout, src_rect);
-  if (!meta_onscreen_native_is_buffer_scanout_compatible (onscreen, scanout))
+  if (!meta_onscreen_native_is_buffer_scanout_compatible (stage_view, onscreen, scanout))
     return NULL;
 
   return g_steal_pointer (&scanout);
@@ -1001,6 +1002,7 @@ meta_wayland_buffer_try_acquire_scanout (MetaWaylandBuffer     *buffer,
         }
       scanout = try_acquire_egl_image_scanout (buffer,
                                                onscreen,
+                                               stage_view,
                                                src_rect,
                                                dst_rect);
       break;
