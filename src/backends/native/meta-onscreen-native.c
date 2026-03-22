@@ -788,117 +788,7 @@ assign_primary_plane (MetaCrtcKms            *crtc_kms,
 }
 
 static gboolean
-meta_onscreen_native_flip_crtc (CoglOnscreen           *onscreen,
-                                ClutterFrame           *frame,
-                                MetaRendererView       *view,
-                                MetaCrtc               *crtc,
-                                MtkRectangle            output_frame,
-                                MetaKmsUpdate          *kms_update,
-                                MetaKmsAssignPlaneFlag  flags,
-                                const MtkRegion        *region)
-{
-  MetaOnscreenNative *onscreen_native = META_ONSCREEN_NATIVE (onscreen);
-  MetaRendererNative *renderer_native = onscreen_native->renderer_native;
-  MetaFrameNative *frame_native;
-  MetaGpuKms *render_gpu = onscreen_native->render_gpu;
-  MetaCrtcKms *crtc_kms = META_CRTC_KMS (crtc);
-  MetaKmsCrtc *kms_crtc = meta_crtc_kms_get_kms_crtc (crtc_kms);
-  MetaRendererNativeGpuData *renderer_gpu_data;
-#ifndef G_DISABLE_ASSERT
-  MetaGpuKms *gpu_kms;
-#endif
-  MetaDrmBuffer *buffer;
-  CoglScanout *scanout;
-  MetaKmsPlaneAssignment *plane_assignment;
-  graphene_rect_t src_rect;
-  MtkRectangle dst_rect;
-
-  COGL_TRACE_BEGIN_SCOPED (MetaOnscreenNativeFlipCrtcs,
-                           "Meta::OnscreenNative::flip_crtc()");
-
-#ifndef G_DISABLE_ASSERT
-  gpu_kms = META_GPU_KMS (meta_crtc_get_gpu (crtc));
-
-  g_assert (meta_gpu_kms_is_crtc_active (gpu_kms, crtc));
-#endif
-
-  renderer_gpu_data = meta_renderer_native_get_gpu_data (renderer_native,
-                                                         render_gpu);
-  switch (renderer_gpu_data->mode)
-    {
-    case META_RENDERER_NATIVE_MODE_GBM:
-      frame_native = meta_frame_native_from_frame (frame);
-      buffer = meta_frame_native_get_buffer (frame_native);
-      if (!buffer)
-        return FALSE;
-
-      scanout = meta_frame_native_get_scanout (frame_native);
-
-      if (scanout)
-        {
-          cogl_scanout_get_src_rect (scanout, &src_rect);
-          cogl_scanout_get_dst_rect (scanout, &dst_rect);
-          // If tiled display, get just the tile
-          if (dst_rect.width > output_frame.width || dst_rect.height > output_frame.height)
-            {
-              src_rect.origin.x += output_frame.x;
-              src_rect.origin.y += output_frame.y;
-              src_rect.size.width = output_frame.width;
-              src_rect.size.height = output_frame.height;
-              dst_rect.width = output_frame.width;
-              dst_rect.height = output_frame.height;
-            }
-        }
-      else
-        {
-          src_rect = (graphene_rect_t) {
-            .origin.x = output_frame.x,
-            .origin.y = output_frame.y,
-            .size.width = output_frame.width,
-            .size.height = output_frame.height
-          };
-          dst_rect = (MtkRectangle) {
-            .x = 0,
-            .y = 0,
-            .width = output_frame.width,
-            .height = output_frame.height
-          };
-        }
-
-      plane_assignment = assign_primary_plane (crtc_kms,
-                                               buffer,
-                                               kms_update,
-                                               flags,
-                                               &src_rect,
-                                               &dst_rect);
-
-      if (region && !mtk_region_is_empty (region))
-        meta_kms_plane_assignment_set_fb_damage (plane_assignment, region);
-      break;
-    case META_RENDERER_NATIVE_MODE_SURFACELESS:
-      g_assert_not_reached ();
-      break;
-#ifdef HAVE_EGL_DEVICE
-    case META_RENDERER_NATIVE_MODE_EGL_DEVICE:
-      meta_kms_update_set_flushing (kms_update, kms_crtc);
-      meta_kms_update_set_custom_page_flip (kms_update,
-                                            custom_egl_stream_page_flip,
-                                            onscreen_native);
-      break;
-#endif
-    }
-
-  meta_kms_update_add_page_flip_listener (kms_update,
-                                          kms_crtc,
-                                          &page_flip_listener_vtable,
-                                          NULL,
-                                          g_object_ref (view),
-                                          g_object_unref);
-  return TRUE;
-}
-
-static gboolean
-meta_onscreen_native_flip_render_target (CoglOnscreen           *onscreen,
+eta_onscreen_native_flip_render_target (CoglOnscreen           *onscreen,
                                          ClutterFrame           *frame,
                                          MetaRendererView       *view,
                                          MetaRenderTarget       *render_target,
@@ -908,21 +798,111 @@ meta_onscreen_native_flip_render_target (CoglOnscreen           *onscreen,
 {
   MetaFrameNative *frame_native = meta_frame_native_from_frame (frame);
   MetaDrmBuffer *buffer = meta_frame_native_get_buffer (frame_native);
-  if (!buffer)
-    return FALSE;
   GPtrArray *crtcs = meta_render_target_get_crtcs (render_target);
   GPtrArray *outputs = meta_render_target_get_outputs (render_target);
-  MtkRectangle output_frame = MTK_RECTANGLE_INIT (0, 0, meta_drm_buffer_get_width (buffer), meta_drm_buffer_get_height (buffer));
+  MtkRectangle output_frame;
+
+  COGL_TRACE_BEGIN_SCOPED (MetaOnscreenNativeFlipRenderTarget,
+                           "Meta::OnscreenNative::flip_render_target()");
+
+  if (!buffer)
+    return FALSE;
 
   g_assert (crtcs->len == outputs->len);
   for (guint i = 0; i < crtcs->len; i++)
     {
       MetaCrtc *crtc = g_ptr_array_index (crtcs, i);
       MetaOutput *output = g_ptr_array_index (outputs, i);
-      if (crtcs->len > 1)  /* If we have a tiled display, get output frame */
-        output_frame = meta_render_target_get_output_tile_frame (render_target, output);
-      meta_onscreen_native_flip_crtc (onscreen, frame, view, crtc, output_frame, kms_update, flags, region);
+      MtkMonitorTransform transform = clutter_stage_view_get_transform (CLUTTER_STAGE_VIEW (view));
+      output_frame = meta_render_target_get_output_tile_frame (render_target, output,
+                                                               transform == MTK_MONITOR_TRANSFORM_NORMAL);
+      MetaOnscreenNative *onscreen_native = META_ONSCREEN_NATIVE (onscreen);
+      MetaRendererNative *renderer_native = onscreen_native->renderer_native;
+      MetaGpuKms *render_gpu = onscreen_native->render_gpu;
+      MetaCrtcKms *crtc_kms = META_CRTC_KMS (crtc);
+      MetaRendererNativeGpuData *renderer_gpu_data;
+#ifndef G_DISABLE_ASSERT
+      MetaGpuKms *gpu_kms;
+#endif
+      CoglScanout *scanout;
+      MetaKmsPlaneAssignment *plane_assignment;
+      graphene_rect_t src_rect;
+      MtkRectangle dst_rect;
+
+#ifndef G_DISABLE_ASSERT
+      gpu_kms = META_GPU_KMS (meta_crtc_get_gpu (crtc));
+
+      g_assert (meta_gpu_kms_is_crtc_active (gpu_kms, crtc));
+#endif
+
+      renderer_gpu_data = meta_renderer_native_get_gpu_data (renderer_native,
+                                                             render_gpu);
+      switch (renderer_gpu_data->mode)
+        {
+        case META_RENDERER_NATIVE_MODE_GBM:
+          scanout = meta_frame_native_get_scanout (frame_native);
+
+          if (scanout)
+            {
+              cogl_scanout_get_src_rect (scanout, &src_rect);
+              cogl_scanout_get_dst_rect (scanout, &dst_rect);
+              /* If tiled display, get just the tile */
+              if (dst_rect.width > output_frame.width || dst_rect.height > output_frame.height)
+                {
+                  src_rect.origin.x += output_frame.x;
+                  src_rect.origin.y += output_frame.y;
+                  src_rect.size.width = output_frame.width;
+                  src_rect.size.height = output_frame.height;
+                  dst_rect.width = output_frame.width;
+                  dst_rect.height = output_frame.height;
+                }
+            }
+          else
+            {
+              src_rect = (graphene_rect_t) {
+                .origin.x = output_frame.x,
+                .origin.y = output_frame.y,
+                .size.width = output_frame.width,
+                .size.height = output_frame.height
+              };
+              dst_rect = (MtkRectangle) {
+                .x = 0,
+                .y = 0,
+                .width = output_frame.width,
+                .height = output_frame.height
+              };
+            }
+
+          plane_assignment = assign_primary_plane (crtc_kms,
+                                                   buffer,
+                                                   kms_update,
+                                                   flags,
+                                                   &src_rect,
+                                                   &dst_rect);
+
+          if (region && !mtk_region_is_empty (region))
+            meta_kms_plane_assignment_set_fb_damage (plane_assignment, region);
+          break;
+        case META_RENDERER_NATIVE_MODE_SURFACELESS:
+          g_assert_not_reached ();
+          break;
+#ifdef HAVE_EGL_DEVICE
+        case META_RENDERER_NATIVE_MODE_EGL_DEVICE:
+          meta_kms_update_set_flushing_one (kms_update, kms_crtc);
+          meta_kms_update_set_custom_page_flip (kms_update,
+                                                custom_egl_stream_page_flip,
+                                                onscreen_native);
+          break;
+#endif
+        }
+
     }
+  meta_kms_update_add_page_flip_listener (kms_update,
+                                          meta_render_target_native_get_primary_kms_crtc (render_target),
+                                          &page_flip_listener_vtable,
+                                          NULL,
+                                          g_object_ref (view),
+                                          g_object_unref);
   return TRUE;
 }
 
