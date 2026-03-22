@@ -190,6 +190,12 @@ gboolean meta_output_info_get_min_refresh_rate (const MetaOutputInfo *output_inf
 
 gboolean meta_output_info_is_builtin (const MetaOutputInfo *output_info);
 
+void meta_output_info_calculate_tile_coordinate (const MetaOutputInfo *output_info,
+                                                 GPtrArray            *outputs,  /* of type MetaOutput * */
+                                                 MtkMonitorTransform   transform,
+                                                 int                  *out_x,
+                                                 int                  *out_y);
+
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (MetaOutputInfo, meta_output_info_unref)
 
 #define META_TYPE_OUTPUT (meta_output_get_type ())
