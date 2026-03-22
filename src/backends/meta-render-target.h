@@ -56,7 +56,8 @@ MetaGpu * meta_render_target_get_gpu (MetaRenderTarget *render_target);
  * size in physical pixels.
  */
 MtkRectangle meta_render_target_get_output_tile_frame (MetaRenderTarget *render_target,
-                                                       MetaOutput       *output);
+                                                       MetaOutput       *output,
+                                                       gboolean          transform);
 
 META_EXPORT_TEST
 MetaBackend * meta_render_target_get_backend (MetaRenderTarget *render_target);

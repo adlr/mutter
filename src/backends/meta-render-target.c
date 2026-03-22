@@ -141,24 +141,54 @@ meta_render_target_get_gpu (MetaRenderTarget *render_target)
 
 MtkRectangle
 meta_render_target_get_output_tile_frame (MetaRenderTarget *render_target,
-                                          MetaOutput       *output)
+                                          MetaOutput       *output,
+                                          gboolean          transform)
 {
   const MetaOutputInfo *output_info = meta_output_get_info (output);
   MtkRectangle tile_frame = MTK_RECTANGLE_INIT (0, 0, output_info->tile_info.tile_w, output_info->tile_info.tile_h);
-  for (guint i = 0; i < render_target->outputs->len; i++)
+  MtkMonitorTransform use_transform =
+    transform ? render_target->transform : MTK_MONITOR_TRANSFORM_NORMAL;
+
+  /* In order to share the tiled and non-tiled display cases, we
+   * fallback to the current CRTC mode size when there's only one
+   * output. We can't use the tile_info in this case because it's
+   * generally all 0 for a non-tiled display. */
+  if (render_target->outputs->len == 1)
     {
-      MetaOutput *other_output = g_ptr_array_index (render_target->outputs, i);
-      const MetaOutputInfo *other_output_info = meta_output_get_info (other_output);
-      if (output_info->tile_info.loc_v_tile == other_output_info->tile_info.loc_v_tile &&
-          output_info->tile_info.loc_h_tile > other_output_info->tile_info.loc_h_tile)
-        {
-          tile_frame.x += other_output_info->tile_info.tile_w;
-        }
-      if (output_info->tile_info.loc_h_tile == other_output_info->tile_info.loc_h_tile &&
-          output_info->tile_info.loc_v_tile > other_output_info->tile_info.loc_v_tile)
-        {
-          tile_frame.y += other_output_info->tile_info.tile_h;
-        }
+      const MetaCrtcConfig *crtc_config;
+      MetaCrtcMode *crtc_mode;
+      const MetaCrtcModeInfo *mode_info;
+
+      tile_frame = MTK_RECTANGLE_INIT (0, 0, 0, 0);
+      g_return_val_if_fail (render_target->crtcs->len == 1, tile_frame);
+      crtc_config = meta_crtc_get_config (g_ptr_array_index (render_target->crtcs, 0));
+      g_return_val_if_fail (crtc_config, tile_frame);
+      crtc_mode = crtc_config->mode;
+      g_return_val_if_fail (crtc_mode, tile_frame);
+      mode_info = meta_crtc_mode_get_info (crtc_mode);
+      g_return_val_if_fail (mode_info, tile_frame);
+      tile_frame.width = mode_info->width;
+      tile_frame.height = mode_info->height;
+    }
+  else
+    {
+      meta_output_info_calculate_tile_coordinate (output_info, render_target->outputs,
+                                                  use_transform,
+                                                  &tile_frame.x,
+                                                  &tile_frame.y);
+    }
+  switch (use_transform)
+    {
+    case MTK_MONITOR_TRANSFORM_270:
+    case MTK_MONITOR_TRANSFORM_FLIPPED_270:
+    case MTK_MONITOR_TRANSFORM_90:
+    case MTK_MONITOR_TRANSFORM_FLIPPED_90:
+      /* swap width and height for these */
+      int width = tile_frame.width;
+      tile_frame.width = tile_frame.height;
+      tile_frame.height = width;
+      break;
+    default:  /* appease compiler */
     }
   return tile_frame;
 }
