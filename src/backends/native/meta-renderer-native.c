@@ -1347,7 +1347,7 @@ meta_renderer_native_queue_modes_reset (MetaRendererNative *renderer_native)
             MetaKmsCrtc *kms_crtc;
             MetaKmsPlane *kms_plane;
             MtkRectangle view_layout;
-            MtkRectangle output_layout = meta_render_target_get_output_tile_frame (render_target, output);
+            MtkRectangle output_layout = meta_render_target_get_output_tile_frame (render_target, output, TRUE);
             float view_scale;
             MetaKmsCrtcLayout crtc_layout;
 
@@ -1367,8 +1367,8 @@ meta_renderer_native_queue_modes_reset (MetaRendererNative *renderer_native)
               .cursor_plane = kms_plane,
               .layout = GRAPHENE_RECT_INIT (view_layout.x + output_layout_gr.origin.x,
                                             view_layout.y + output_layout_gr.origin.y,
-                                            output_layout_gr.size.width ?: view_layout.width,
-                                            output_layout_gr.size.height ?: view_layout.height),
+                                            output_layout_gr.size.width,
+                                            output_layout_gr.size.height),
               .scale = view_scale,
             };
             g_array_append_val (crtc_layouts, crtc_layout);
