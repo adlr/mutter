@@ -1204,85 +1204,6 @@ find_tiled_monitor_outputs (MetaGpu    *gpu,
 }
 
 static void
-calculate_tile_coordinate (MetaMonitor         *monitor,
-                           MetaOutput          *output,
-                           MtkMonitorTransform  crtc_transform,
-                           int                 *out_x,
-                           int                 *out_y)
-{
-  MetaMonitorPrivate *monitor_priv =
-    meta_monitor_get_instance_private (monitor);
-  const MetaOutputInfo *output_info = meta_output_get_info (output);
-  GList *l;
-  int x = 0;
-  int y = 0;
-
-  for (l = monitor_priv->outputs; l; l = l->next)
-    {
-      const MetaOutputInfo *other_output_info = meta_output_get_info (l->data);
-
-      switch (crtc_transform)
-        {
-        case MTK_MONITOR_TRANSFORM_NORMAL:
-        case MTK_MONITOR_TRANSFORM_FLIPPED:
-          if ((other_output_info->tile_info.loc_v_tile ==
-               output_info->tile_info.loc_v_tile) &&
-              (other_output_info->tile_info.loc_h_tile <
-               output_info->tile_info.loc_h_tile))
-            x += other_output_info->tile_info.tile_w;
-          if ((other_output_info->tile_info.loc_h_tile ==
-               output_info->tile_info.loc_h_tile) &&
-              (other_output_info->tile_info.loc_v_tile <
-               output_info->tile_info.loc_v_tile))
-            y += other_output_info->tile_info.tile_h;
-          break;
-        case MTK_MONITOR_TRANSFORM_180:
-        case MTK_MONITOR_TRANSFORM_FLIPPED_180:
-          if ((other_output_info->tile_info.loc_v_tile ==
-               output_info->tile_info.loc_v_tile) &&
-              (other_output_info->tile_info.loc_h_tile >
-               output_info->tile_info.loc_h_tile))
-            x += other_output_info->tile_info.tile_w;
-          if ((other_output_info->tile_info.loc_h_tile ==
-               output_info->tile_info.loc_h_tile) &&
-              (other_output_info->tile_info.loc_v_tile >
-               output_info->tile_info.loc_v_tile))
-            y += other_output_info->tile_info.tile_h;
-          break;
-        case MTK_MONITOR_TRANSFORM_270:
-        case MTK_MONITOR_TRANSFORM_FLIPPED_270:
-          if ((other_output_info->tile_info.loc_v_tile ==
-               output_info->tile_info.loc_v_tile) &&
-              (other_output_info->tile_info.loc_h_tile >
-               output_info->tile_info.loc_h_tile))
-            y += other_output_info->tile_info.tile_w;
-          if ((other_output_info->tile_info.loc_h_tile ==
-               output_info->tile_info.loc_h_tile) &&
-              (other_output_info->tile_info.loc_v_tile >
-               output_info->tile_info.loc_v_tile))
-            x += other_output_info->tile_info.tile_h;
-          break;
-        case MTK_MONITOR_TRANSFORM_90:
-        case MTK_MONITOR_TRANSFORM_FLIPPED_90:
-          if ((other_output_info->tile_info.loc_v_tile ==
-               output_info->tile_info.loc_v_tile) &&
-              (other_output_info->tile_info.loc_h_tile <
-               output_info->tile_info.loc_h_tile))
-            y += other_output_info->tile_info.tile_w;
-          if ((other_output_info->tile_info.loc_h_tile ==
-               output_info->tile_info.loc_h_tile) &&
-              (other_output_info->tile_info.loc_v_tile <
-               output_info->tile_info.loc_v_tile))
-            x += other_output_info->tile_info.tile_h;
-          break;
-        }
-    }
-
-  *out_x = x;
-  *out_y = y;
-}
-
-static void
 meta_monitor_tiled_calculate_tiled_size (MetaMonitor *monitor,
                                          int         *out_width,
                                          int         *out_height)
@@ -2010,8 +1931,18 @@ meta_monitor_tiled_calculate_crtc_pos (MetaMonitor         *monitor,
 
   if (mode_tiled->is_tiled)
     {
-      calculate_tile_coordinate (monitor, output, crtc_transform,
-                                 out_x, out_y);
+      MetaMonitorPrivate *monitor_priv =
+        meta_monitor_get_instance_private (monitor);
+      g_autoptr (GPtrArray) outputs = g_ptr_array_new ();
+      GList *l;
+
+      for (l = monitor_priv->outputs; l != NULL; l = l->next) {
+        g_ptr_array_add(outputs, l->data);
+      }
+
+      meta_output_info_calculate_tile_coordinate (meta_output_get_info (output),
+                                                  outputs, crtc_transform,
+                                                  out_x, out_y);
     }
   else
     {

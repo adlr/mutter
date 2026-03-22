@@ -531,6 +531,81 @@ meta_output_info_is_builtin (const MetaOutputInfo *output_info)
     }
 }
 
+void meta_output_info_calculate_tile_coordinate (const MetaOutputInfo *output_info,
+                                                 GPtrArray            *outputs,  /* of type MetaOutput * */
+                                                 MtkMonitorTransform   crtc_transform,
+                                                 int                  *out_x,
+                                                 int                  *out_y)
+{
+  int x = 0;
+  int y = 0;
+
+  for (guint i = 0; i < outputs->len; i++)
+    {
+      MetaOutput *other_output = g_ptr_array_index (outputs, i);
+      const MetaOutputInfo *other_output_info = meta_output_get_info (other_output);
+
+      switch (crtc_transform)
+        {
+        case MTK_MONITOR_TRANSFORM_NORMAL:
+        case MTK_MONITOR_TRANSFORM_FLIPPED:
+          if ((other_output_info->tile_info.loc_v_tile ==
+               output_info->tile_info.loc_v_tile) &&
+              (other_output_info->tile_info.loc_h_tile <
+               output_info->tile_info.loc_h_tile))
+            x += other_output_info->tile_info.tile_w;
+          if ((other_output_info->tile_info.loc_h_tile ==
+               output_info->tile_info.loc_h_tile) &&
+              (other_output_info->tile_info.loc_v_tile <
+               output_info->tile_info.loc_v_tile))
+            y += other_output_info->tile_info.tile_h;
+          break;
+        case MTK_MONITOR_TRANSFORM_180:
+        case MTK_MONITOR_TRANSFORM_FLIPPED_180:
+          if ((other_output_info->tile_info.loc_v_tile ==
+               output_info->tile_info.loc_v_tile) &&
+              (other_output_info->tile_info.loc_h_tile >
+               output_info->tile_info.loc_h_tile))
+            x += other_output_info->tile_info.tile_w;
+          if ((other_output_info->tile_info.loc_h_tile ==
+               output_info->tile_info.loc_h_tile) &&
+              (other_output_info->tile_info.loc_v_tile >
+               output_info->tile_info.loc_v_tile))
+            y += other_output_info->tile_info.tile_h;
+          break;
+        case MTK_MONITOR_TRANSFORM_270:
+        case MTK_MONITOR_TRANSFORM_FLIPPED_270:
+          if ((other_output_info->tile_info.loc_v_tile ==
+               output_info->tile_info.loc_v_tile) &&
+              (other_output_info->tile_info.loc_h_tile >
+               output_info->tile_info.loc_h_tile))
+            y += other_output_info->tile_info.tile_w;
+          if ((other_output_info->tile_info.loc_h_tile ==
+               output_info->tile_info.loc_h_tile) &&
+              (other_output_info->tile_info.loc_v_tile >
+               output_info->tile_info.loc_v_tile))
+            x += other_output_info->tile_info.tile_h;
+          break;
+        case MTK_MONITOR_TRANSFORM_90:
+        case MTK_MONITOR_TRANSFORM_FLIPPED_90:
+          if ((other_output_info->tile_info.loc_v_tile ==
+               output_info->tile_info.loc_v_tile) &&
+              (other_output_info->tile_info.loc_h_tile <
+               output_info->tile_info.loc_h_tile))
+            y += other_output_info->tile_info.tile_w;
+          if ((other_output_info->tile_info.loc_h_tile ==
+               output_info->tile_info.loc_h_tile) &&
+              (other_output_info->tile_info.loc_v_tile <
+               output_info->tile_info.loc_v_tile))
+            x += other_output_info->tile_info.tile_h;
+          break;
+        }
+    }
+
+  *out_x = x;
+  *out_y = y;
+}
+
 void
 meta_output_get_color_metadata (MetaOutput            *output,
                                 MetaOutputHdrMetadata *hdr_metadata,
