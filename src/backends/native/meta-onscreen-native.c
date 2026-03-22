@@ -2133,39 +2133,59 @@ post_failed:
 }
 
 gboolean
-meta_onscreen_native_is_buffer_scanout_compatible (CoglOnscreen *onscreen,
-                                                   CoglScanout  *scanout)
+meta_onscreen_native_is_buffer_scanout_compatible (ClutterStageView *stage_view,
+                                                   CoglOnscreen     *onscreen,
+                                                   CoglScanout      *scanout)
 {
   MetaOnscreenNative *onscreen_native = META_ONSCREEN_NATIVE (onscreen);
-  MetaCrtcKms *crtc_kms = meta_render_target_native_get_primary_crtc_kms (onscreen_native->render_target);
   MetaKmsDevice *kms_device;
-  MetaKmsCrtc *kms_crtc;
   MetaKmsUpdate *test_update;
-  MetaDrmBuffer *buffer;
+  MetaDrmBuffer *buffer = META_DRM_BUFFER (cogl_scanout_get_buffer (scanout));
   g_autoptr (MetaKmsFeedback) kms_feedback = NULL;
+  GPtrArray *outputs = meta_render_target_get_outputs (onscreen_native->render_target);
   MetaKmsFeedbackResult result;
   graphene_rect_t src_rect;
   MtkRectangle dst_rect;
+  MtkMonitorTransform transform = clutter_stage_view_get_transform (stage_view);
+  g_autoptr (GPtrArray) crtc_kmses =
+    meta_render_target_native_get_crtc_kmses (onscreen_native->render_target);
 
   kms_device = meta_render_target_native_get_kms_device (onscreen_native->render_target);
-  kms_crtc = meta_crtc_kms_get_kms_crtc (crtc_kms);
-
   test_update = meta_kms_update_new (kms_device);
 
-  cogl_scanout_get_src_rect (scanout, &src_rect);
-  cogl_scanout_get_dst_rect (scanout, &dst_rect);
+  g_assert (crtc_kmses->len == outputs->len);
+  for (guint i = 0; i < crtc_kmses->len; i++)
+    {
+      MetaCrtcKms *crtc_kms = g_ptr_array_index (crtc_kmses, i);
+      MetaOutput *output = g_ptr_array_index (outputs, i);
+      MtkRectangle output_frame =
+        meta_render_target_get_output_tile_frame (onscreen_native->render_target, output,
+                                                  transform == MTK_MONITOR_TRANSFORM_NORMAL);
+      cogl_scanout_get_src_rect (scanout, &src_rect);
+      cogl_scanout_get_dst_rect (scanout, &dst_rect);
+      /* If tiled display, get just the tile */
+      if (dst_rect.width > output_frame.width || dst_rect.height > output_frame.height)
+        {
+          src_rect.origin.x += output_frame.x;
+          src_rect.origin.y += output_frame.y;
+          src_rect.size.width = output_frame.width;
+          src_rect.size.height = output_frame.height;
+          dst_rect.width = output_frame.width;
+          dst_rect.height = output_frame.height;
+        }
 
-  buffer = META_DRM_BUFFER (cogl_scanout_get_buffer (scanout));
-  assign_primary_plane (crtc_kms,
-                        buffer,
-                        test_update,
-                        META_KMS_ASSIGN_PLANE_FLAG_DISABLE_IMPLICIT_SYNC,
-                        &src_rect,
-                        &dst_rect);
+      assign_primary_plane (crtc_kms,
+                            buffer,
+                            test_update,
+                            META_KMS_ASSIGN_PLANE_FLAG_DISABLE_IMPLICIT_SYNC,
+                            &src_rect,
+                            &dst_rect);
+    }
 
   meta_topic (META_DEBUG_KMS,
-              "Posting direct scanout test update for CRTC %u (%s) synchronously",
-              meta_kms_crtc_get_id (kms_crtc),
+              "Posting direct scanout test update for %d CRTCs(s) starting with %u (%s) synchronously",
+              crtc_kmses->len,
+              meta_kms_crtc_get_id (meta_render_target_native_get_primary_kms_crtc (onscreen_native->render_target)),
               meta_kms_device_get_path (kms_device));
 
   kms_feedback =
