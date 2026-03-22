@@ -137,6 +137,9 @@ create_crtc_view (MetaLogicalMonitor *logical_monitor,
   MetaRendererView *view;
   g_autoptr (GError) error = NULL;
 
+  meta_render_target_set_transform (render_target,
+                                    logical_monitor->transform);
+
   view = meta_renderer_create_view (renderer,
                                     logical_monitor,
                                     monitor,
