@@ -40,9 +40,17 @@ struct _MetaRenderTarget
 
   GPtrArray *crtcs;  /* of type MetaCrtc * */
   GPtrArray *outputs;  /* of type MetaOutput * */
+  MtkMonitorTransform transform;
 };
 
 G_DEFINE_TYPE (MetaRenderTarget, meta_render_target, G_TYPE_OBJECT)
+
+void
+meta_render_target_set_transform (MetaRenderTarget *render_target,
+                                  MtkMonitorTransform transform)
+{
+  render_target->transform = transform;
+}
 
 void
 meta_render_target_add (MetaRenderTarget *render_target,
