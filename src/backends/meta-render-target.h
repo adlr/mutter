@@ -43,6 +43,18 @@ GPtrArray * meta_render_target_get_crtcs (MetaRenderTarget *render_target);
 GPtrArray * meta_render_target_get_outputs (MetaRenderTarget *render_target);
 MtkRectangle meta_render_target_get_view_layout (MetaRenderTarget *render_target);
 MetaGpu * meta_render_target_get_gpu (MetaRenderTarget *render_target);
+
+/* Returns the output tile frame. That is, the rectangle in physical
+ * pixels for this particular `output` in the `render_target`. This
+ * function does not look at the bigger picture of how this
+ * `render_target` may fit into a multi-display layout: the upper left
+ * `output` will have `x`, `y` as 0.
+ *
+ * In order to handle non-tiled displays in the same code paths, in
+ * the case of just one `output` in the `render_target`, it will
+ * ignore any tile info and look at the current crtc mode to get the
+ * size in physical pixels.
+ */
 MtkRectangle meta_render_target_get_output_tile_frame (MetaRenderTarget *render_target,
                                                        MetaOutput       *output);
 
