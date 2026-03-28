@@ -3624,7 +3624,7 @@ meta_onscreen_native_dispose (GObject *object)
   g_clear_pointer (&onscreen_native->secondary_gpu_state,
                    secondary_gpu_state_free);
 
-  g_clear_pointer (&onscreen_native->render_target, g_ptr_array_unref);
+  g_clear_object (&onscreen_native->render_target);
 }
 
 static void
