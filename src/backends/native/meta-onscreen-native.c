@@ -2483,15 +2483,13 @@ meta_onscreen_native_finish_frame (CoglOnscreen *onscreen,
                                    ClutterFrame *frame)
 {
   MetaOnscreenNative *onscreen_native = META_ONSCREEN_NATIVE (onscreen);
+  MetaKmsCrtc *primary_kms_crtc = meta_render_target_native_get_primary_kms_crtc (onscreen_native->render_target);
   MetaKmsDevice *kms_device = meta_render_target_native_get_kms_device (onscreen_native->render_target);
   MetaFrameNative *frame_native = meta_frame_native_from_frame (frame);
   MetaKmsUpdate *kms_update;
 
-  meta_render_target_native_foreach_kms_crtc (MetaKmsCrtc * kms_crtc, onscreen_native->render_target)
-  {
-    onscreen_native->needs_flush |= meta_kms_device_handle_flush (kms_device,
-                                                                  kms_crtc);
-  }
+  onscreen_native->needs_flush |= meta_kms_device_handle_flush (kms_device,
+                                                                primary_kms_crtc);
 
   if (!meta_frame_native_has_kms_update (frame_native))
     {
