@@ -2021,7 +2021,7 @@ meta_kms_impl_device_do_process_update (MetaKmsImplDevice   *impl_device,
       disarm_crtc_frame_deadline_timer (crtc_frame);
     }
 
-  meta_kms_device_handle_flush (priv->device, latch_crtcs);
+  meta_kms_device_handle_flush (priv->device, g_ptr_array_index (latch_crtcs, 0));
 
   feedback = filter_and_process (impl_device, latch_crtcs, update, flags);
 
