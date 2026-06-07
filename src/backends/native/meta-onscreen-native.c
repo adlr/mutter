@@ -2023,10 +2023,10 @@ maybe_post_next_frame (CoglOnscreen *onscreen)
       return;
     }
 
-  kms_crtc = meta_crtc_kms_get_kms_crtc (META_CRTC_KMS (onscreen_native->crtc));
-  kms_device = meta_kms_crtc_get_device (kms_crtc);
-  kms_update = meta_frame_native_ensure_kms_update (frame_native,
-                                                    kms_device);
+  /* kms_crtc = meta_crtc_kms_get_kms_crtc (META_CRTC_KMS (onscreen_native->crtc)); */
+  /* kms_device = meta_kms_crtc_get_device (kms_crtc); */
+  /* kms_update = meta_frame_native_ensure_kms_update (frame_native, */
+  /*                                                   kms_device); */
 
   meta_kms_update_add_result_listener (kms_update,
                                        listener,
@@ -3141,8 +3141,8 @@ create_secondary_gpu_buffer (CoglOnscreen        *onscreen,
                              GError             **error)
 {
   MetaOnscreenNative *onscreen_native = META_ONSCREEN_NATIVE (onscreen);
-  MetaCrtcKms *crtc_kms = META_CRTC_KMS (onscreen_native->crtc);
-  MetaGpuKms *gpu_kms = META_GPU_KMS (meta_crtc_get_gpu (onscreen_native->crtc));
+  MetaCrtcKms *crtc_kms = meta_render_target_native_get_primary_crtc_kms (onscreen_native->render_target);
+  MetaGpuKms *gpu_kms = META_GPU_KMS (meta_render_target_get_gpu (onscreen_native->render_target));
   MetaKmsDevice *kms_device = meta_gpu_kms_get_kms_device (gpu_kms);
   const char *kms_modifiers_debug_env;
   MetaKmsDeviceFlag kms_device_flags;
