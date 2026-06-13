@@ -800,6 +800,7 @@ meta_onscreen_native_flip_render_target (CoglOnscreen           *onscreen,
   MetaDrmBuffer *buffer = meta_frame_native_get_buffer (frame_native);
   GPtrArray *crtcs = meta_render_target_get_crtcs (render_target);
   GPtrArray *outputs = meta_render_target_get_outputs (render_target);
+  MetaKmsCrtc *kms_crtc = meta_render_target_native_get_primary_kms_crtc (render_target);
   MtkRectangle output_frame;
 
   COGL_TRACE_BEGIN_SCOPED (MetaOnscreenNativeFlipRenderTarget,
