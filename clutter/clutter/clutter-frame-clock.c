@@ -240,6 +240,9 @@ static void
 clutter_frame_clock_set_refresh_rate (ClutterFrameClock *frame_clock,
                                       float              refresh_rate)
 {
+  if (frame_clock->refresh_rate != refresh_rate) {
+    g_warning ("Refresh rate for %s changed: %f -> %f", frame_clock->output_name, frame_clock->refresh_rate, refresh_rate);
+  }
   frame_clock->refresh_rate = refresh_rate;
   frame_clock->refresh_interval_us =
     (int64_t) (0.5 + G_USEC_PER_SEC / refresh_rate);
