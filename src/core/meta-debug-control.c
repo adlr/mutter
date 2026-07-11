@@ -163,6 +163,21 @@ meta_debug_control_class_init (MetaDebugControlClass *klass)
   g_object_class_install_properties (object_class, N_PROPS, obj_props);
 }
 
+/* Forward declaration — the function lives in libmutter-clutter and is
+ * exported, but the header is not directly includable outside of the
+ * clutter compilation unit. */
+void clutter_frame_clock_set_verbose_debug (gboolean enable);
+
+static void
+on_verbose_frame_clock_changed (MetaDBusDebugControl *dbus_debug_control,
+                                GParamSpec           *pspec,
+                                gpointer              user_data)
+{
+  gboolean enabled =
+    meta_dbus_debug_control_get_verbose_frame_clock (dbus_debug_control);
+  clutter_frame_clock_set_verbose_debug (enabled);
+}
+
 static void
 meta_debug_control_init (MetaDebugControl *debug_control)
 {
@@ -195,6 +210,10 @@ meta_debug_control_init (MetaDebugControl *debug_control)
     g_strcmp0 (getenv ("MUTTER_DEBUG_A11Y_MANAGER_WITHOUT_ACCESS_CONTROL"), "1") == 0;
   meta_dbus_debug_control_set_a11y_manager_without_access_control (dbus_debug_control,
                                                                    a11y_manager_without_access_control);
+
+  meta_dbus_debug_control_set_verbose_frame_clock (dbus_debug_control, FALSE);
+  g_signal_connect (dbus_debug_control, "notify::verbose-frame-clock",
+                    G_CALLBACK (on_verbose_frame_clock_changed), NULL);
 }
 
 gboolean

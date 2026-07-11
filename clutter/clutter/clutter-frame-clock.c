@@ -42,6 +42,9 @@ enum
 
 static guint signals[N_SIGNALS];
 
+/* Atomic flag toggled at runtime via clutter_frame_clock_set_verbose_debug(). */
+static gint frame_clock_verbose_debug = 0;
+
 #define SYNC_DELAY_FALLBACK_FRACTION 0.875f
 
 #define MINIMUM_REFRESH_RATE 30.f
@@ -165,6 +168,15 @@ struct _ClutterFrameClock
   char *output_name;
 
   GQueue *deferred_times;
+
+  /* verbose debug tracking — cheap to maintain, only logged when the global
+   * frame_clock_verbose_debug flag is set. */
+  int64_t verbose_window_start_us;  /* start of current 1s fps window */
+  int64_t verbose_frame_count;      /* dispatches in current window */
+  int64_t verbose_idle_us;          /* total idle time in current window */
+  int64_t verbose_idle_start_us;    /* when we entered IDLE (0 = not idle) */
+  int64_t verbose_idle_duration_us; /* idle duration of the previous IDLE spell */
+  int64_t verbose_last_dispatch_us; /* timestamp of previous dispatch */
 };
 
 G_DEFINE_TYPE (ClutterFrameClock, clutter_frame_clock,
@@ -211,6 +223,21 @@ clutter_frame_clock_set_state (ClutterFrameClock      *frame_clock,
                 frame_clock->output_name,
                 clutter_frame_clock_state_to_string (frame_clock->state),
                 clutter_frame_clock_state_to_string (state));
+
+  /* Track IDLE entry/exit for verbose fps accounting. */
+  if (state == CLUTTER_FRAME_CLOCK_STATE_IDLE)
+    {
+      frame_clock->verbose_idle_start_us = g_get_monotonic_time ();
+    }
+  else if (frame_clock->state == CLUTTER_FRAME_CLOCK_STATE_IDLE &&
+           frame_clock->verbose_idle_start_us > 0)
+    {
+      int64_t idle_dur = g_get_monotonic_time () - frame_clock->verbose_idle_start_us;
+      frame_clock->verbose_idle_duration_us = idle_dur;
+      frame_clock->verbose_idle_us += idle_dur;
+      frame_clock->verbose_idle_start_us = 0;
+    }
+
   frame_clock->state = state;
 }
 
@@ -1724,6 +1751,51 @@ clutter_frame_clock_dispatch (ClutterFrameClock *frame_clock,
 
   this_dispatch->dispatch_time_us = time_us;
 
+  if (G_UNLIKELY (g_atomic_int_get (&frame_clock_verbose_debug)))
+    {
+      /* Warn on any dispatch interval more than 1.5x the expected interval. */
+      if (frame_clock->verbose_last_dispatch_us > 0)
+        {
+          int64_t interval = time_us - frame_clock->verbose_last_dispatch_us;
+          int64_t expected = frame_clock->refresh_interval_us;
+
+          if (interval > expected * 3 / 2)
+            {
+              g_message ("[frame-clock] %s: slow dispatch interval=%ldµs "
+                         "(expected=%ldµs +%ldµs), prev_idle=%ldµs",
+                         frame_clock->output_name,
+                         interval, expected, interval - expected,
+                         frame_clock->verbose_idle_duration_us);
+            }
+        }
+      frame_clock->verbose_last_dispatch_us = time_us;
+
+      /* Per-second FPS summary. */
+      frame_clock->verbose_frame_count++;
+      if (frame_clock->verbose_window_start_us == 0)
+        frame_clock->verbose_window_start_us = time_us;
+
+      int64_t elapsed = time_us - frame_clock->verbose_window_start_us;
+      if (elapsed >= G_USEC_PER_SEC)
+        {
+          double fps = (double) frame_clock->verbose_frame_count *
+                       G_USEC_PER_SEC / (double) elapsed;
+          g_message ("[frame-clock] %s: fps=%.1f (expected=%.1f) "
+                     "idle=%ldms/%ldms  longterm_max=%ldµs  shortterm_max=%ldµs  vblank=%ldµs",
+                     frame_clock->output_name,
+                     fps,
+                     (double) frame_clock->refresh_rate,
+                     frame_clock->verbose_idle_us / 1000,
+                     elapsed / 1000,
+                     frame_clock->longterm_max_update_duration_us,
+                     frame_clock->shortterm_max_update_duration_us,
+                     frame_clock->vblank_duration_us);
+          frame_clock->verbose_frame_count = 0;
+          frame_clock->verbose_window_start_us = time_us;
+          frame_clock->verbose_idle_us = 0;
+        }
+    }
+
   if (frame_clock->source)
     g_source_set_ready_time (frame_clock->source, -1);
 
@@ -2071,6 +2143,19 @@ clutter_frame_clock_set_deadline_evasion (ClutterFrameClock *frame_clock,
                                           int64_t            deadline_evasion_us)
 {
   frame_clock->deadline_evasion_us = deadline_evasion_us;
+}
+
+void
+clutter_frame_clock_set_verbose_debug (gboolean enable)
+{
+  g_atomic_int_set (&frame_clock_verbose_debug, enable ? 1 : 0);
+  g_message ("Frame clock verbose debug: %s", enable ? "ON" : "OFF");
+}
+
+gboolean
+clutter_frame_clock_get_verbose_debug (void)
+{
+  return g_atomic_int_get (&frame_clock_verbose_debug) != 0;
 }
 
 void
