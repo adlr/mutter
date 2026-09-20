@@ -22,12 +22,16 @@
 
 #include "backends/native/meta-backend-native-types.h"
 #include "backends/native/meta-kms-types.h"
+#include "backends/native/meta-render-target-native.h"
 #include "core/util-private.h"
 #include "mtk/mtk.h"
 
 typedef struct _MetaKmsCrtcLayout
 {
   MetaKmsCrtc *crtc;
+  /* All KmsCrtcs for the tile group in case of tiled display, including crtc. */
+  /* In a non-tiled dispaly, group_crtcs would have just one element (crtc). */
+  MetaKmsCrtcPtrArray *group_crtcs;
   MetaKmsPlane *cursor_plane;
   graphene_rect_t layout;
   float scale;

@@ -639,6 +639,14 @@ meta_renderer_native_queue_mode_set_update (MetaRendererNative *renderer_native,
   meta_kms_update_free (new_kms_update);
 }
 
+static void
+clear_crtc_layout (gpointer data)
+{
+  MetaKmsCrtcLayout *crtc_layout = data;
+
+  g_clear_pointer (&crtc_layout->group_crtcs, g_ptr_array_unref);
+}
+
 void
 meta_renderer_native_queue_modes_reset (MetaRendererNative *renderer_native)
 {
@@ -650,6 +658,7 @@ meta_renderer_native_queue_modes_reset (MetaRendererNative *renderer_native)
   g_autoptr (GArray) crtc_layouts = NULL;
 
   crtc_layouts = g_array_new (FALSE, TRUE, sizeof (MetaKmsCrtcLayout));
+  g_array_set_clear_func (crtc_layouts, clear_crtc_layout);
 
   g_clear_list (&renderer_native->pending_mode_set_views, NULL);
   for (l = meta_renderer_get_views (renderer); l; l = l->next)
@@ -663,6 +672,9 @@ meta_renderer_native_queue_modes_reset (MetaRendererNative *renderer_native)
           MetaOnscreenNative *onscreen_native =
             META_ONSCREEN_NATIVE (framebuffer);
           MetaRenderTarget *render_target = meta_onscreen_native_get_render_target (onscreen_native);
+          g_autoptr (GPtrArray) group_crtcs =
+            meta_render_target_native_get_kms_crtc_array (render_target);
+
           meta_render_target_foreach_crtc_output (MetaCrtc * crtc, MetaOutput * output, render_target)
           {
             MetaCrtcKms *crtc_kms;
@@ -686,6 +698,7 @@ meta_renderer_native_queue_modes_reset (MetaRendererNative *renderer_native)
 
             crtc_layout = (MetaKmsCrtcLayout) {
               .crtc = kms_crtc,
+              .group_crtcs = g_ptr_array_ref (group_crtcs),
               .cursor_plane = kms_plane,
               .layout = GRAPHENE_RECT_INIT (view_layout.x + output_layout_gr.origin.x,
                                             view_layout.y + output_layout_gr.origin.y,
