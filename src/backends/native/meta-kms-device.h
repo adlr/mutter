@@ -76,8 +76,8 @@ void meta_kms_device_post_update (MetaKmsDevice     *device,
                                   MetaKmsUpdateFlag  flags);
 
 META_EXPORT_TEST
-void meta_kms_device_await_flush (MetaKmsDevice *device,
-                                  MetaKmsCrtc   *crtc);
+void meta_kms_device_await_flush (MetaKmsDevice       *device,
+                                  MetaKmsCrtcPtrArray *crtcs);
 
 gboolean meta_kms_device_handle_flush (MetaKmsDevice *device,
                                        MetaKmsCrtc   *crtc);

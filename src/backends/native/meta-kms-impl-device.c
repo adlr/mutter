@@ -2349,16 +2349,15 @@ err:
 }
 
 void
-meta_kms_impl_device_await_flush (MetaKmsImplDevice *impl_device,
-                                  MetaKmsCrtc       *crtc)
+meta_kms_impl_device_await_flush (MetaKmsImplDevice   *impl_device,
+                                  MetaKmsCrtcPtrArray *crtcs)
 {
   MetaKmsImplDevicePrivate *priv =
     meta_kms_impl_device_get_instance_private (impl_device);
   CrtcFrame *crtc_frame;
-  g_autoptr (GPtrArray) crtcs = g_ptr_array_new_from_array ((void**) &crtc, 1, NULL, NULL, NULL);
 
   meta_topic (META_DEBUG_KMS, "Awaiting flush on CRTC %u (%s)",
-              meta_kms_crtc_get_id (crtc),
+              meta_kms_crtc_get_id (meta_crtc_kms_ptr_array_get_primary (crtcs)),
               priv->path);
 
   crtc_frame = ensure_crtc_frame (impl_device, crtcs);
