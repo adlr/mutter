@@ -558,6 +558,7 @@ meta_test_kms_device_discard_disabled (void)
   layout_array = g_array_new (FALSE, TRUE, sizeof (MetaKmsCrtcLayout));
   layout = (MetaKmsCrtcLayout) {
     .crtc = crtc,
+    .group_crtcs = crtcs,
     .layout = {
       .size = {
         .width = meta_kms_mode_get_width (mode),
@@ -700,6 +701,7 @@ meta_test_kms_device_empty_update (void)
   MetaKmsDevice *device;
   MetaKmsUpdate *update;
   MetaKmsCrtc *crtc;
+  g_autoptr (GPtrArray) crtcs = NULL;
   MetaKmsConnector *connector;
   MetaKmsMode *mode;
   MetaKmsPlane *primary_plane;
@@ -709,6 +711,7 @@ meta_test_kms_device_empty_update (void)
 
   device = meta_get_test_kms_device (test_context);
   crtc = meta_get_test_kms_crtc (device);
+  crtcs = g_ptr_array_new_from_array ((gpointer *) &crtc, 1, NULL, NULL, NULL);
   connector = meta_get_test_kms_connector (device);
   mode = meta_kms_connector_get_preferred_mode (connector);
   primary_plane = meta_get_primary_test_plane_for (device, crtc);
@@ -721,6 +724,7 @@ meta_test_kms_device_empty_update (void)
   layout_array = g_array_new (FALSE, TRUE, sizeof (MetaKmsCrtcLayout));
   layout = (MetaKmsCrtcLayout) {
     .crtc = crtc,
+    .group_crtcs = crtcs,
     .layout = {
       .size = {
         .width = meta_kms_mode_get_width (mode),
