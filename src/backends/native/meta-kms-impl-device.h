@@ -202,7 +202,7 @@ void meta_kms_impl_device_handle_update (MetaKmsImplDevice *impl_device,
                                          MetaKmsUpdateFlag  flags);
 
 void meta_kms_impl_device_await_flush (MetaKmsImplDevice *impl_device,
-                                       MetaKmsCrtc       *crtc);
+                                       GPtrArray         *crtcs);
 
 META_EXPORT_TEST
 void meta_kms_impl_device_schedule_process (MetaKmsImplDevice *impl_device,

@@ -38,19 +38,4 @@ typedef GPtrArray MetaKmsCrtcPtrArray;  /* GPtrArray of MetaKmsCrtc *, must have
  */
 GPtrArray * meta_render_target_native_get_kms_crtc_array (MetaRenderTarget *render_target);
 
-#define meta_crtc_kms_ptr_array_get_primary(arr) \
-  ((MetaKmsCrtc *) g_ptr_array_index (arr, 0))
-#define meta_crtc_kms_ptr_array_get_device(arr) \
-  ((MetaKmsDevice *) meta_kms_crtc_get_device (meta_crtc_kms_ptr_array_get_primary (arr)))
-#define meta_crtc_kms_ptr_array_get_deadline_evasion(arr) \
-  meta_kms_crtc_get_deadline_evasion (meta_crtc_kms_ptr_array_get_primary (arr))
-
 int64_t meta_render_target_native_get_deadline_evasion (MetaRenderTarget *render_target);
-
-#define meta_kms_crtc_ptr_array_foreach(kms_crtc_decl, arr) \
-  for (guint toggle__ = 1, \
-       count__ = 0, \
-       size__ = arr->len; \
-       count__ < size__; \
-       toggle__ = 1, count__++) \
-  for (kms_crtc_decl = g_ptr_array_index (arr, count__); toggle__; toggle__ = 0)

@@ -506,6 +506,7 @@ meta_test_kms_device_discard_disabled (void)
   MetaDeviceFile *device_file;
   MetaKmsUpdate *update;
   MetaKmsCrtc *crtc;
+  g_autoptr (GPtrArray) crtcs = NULL;
   MetaKmsConnector *connector;
   MetaKmsMode *mode;
   MetaKmsPlane *primary_plane;
@@ -527,6 +528,7 @@ meta_test_kms_device_discard_disabled (void)
     }
 
   crtc = meta_get_test_kms_crtc (device);
+  crtcs = g_ptr_array_new_from_array ((gpointer *) &crtc, 1, NULL, NULL, NULL);
   connector = meta_get_test_kms_connector (device);
   mode = meta_kms_connector_get_preferred_mode (connector);
   primary_plane = meta_get_primary_test_plane_for (device, crtc);
@@ -609,7 +611,7 @@ meta_test_kms_device_discard_disabled (void)
    */
 
   seat = meta_backend_get_default_seat (backend);
-  meta_kms_device_await_flush (device, crtc);
+  meta_kms_device_await_flush (device, crtcs);
   fake_position_changed (seat, cursor_manager);
   meta_flush_input (test_context);
 

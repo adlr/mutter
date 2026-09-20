@@ -2470,9 +2470,12 @@ meta_onscreen_native_before_redraw (CoglOnscreen *onscreen,
 
   if (meta_get_debug_paint_flags () & META_DEBUG_PAINT_SYNC_CURSOR_PRIMARY)
     {
-      MetaKmsCrtc *kms_crtc = get_primary_kms_crtc (onscreen_native->render_target);
+      g_autoptr (GPtrArray) kms_crtcs =
+        meta_render_target_native_get_kms_crtc_array (onscreen_native->render_target);
+      MetaKmsDevice *kms_device =
+        meta_render_target_native_get_kms_device (onscreen_native->render_target);
 
-      meta_kms_device_await_flush (meta_kms_crtc_get_device (kms_crtc), kms_crtc);
+      meta_kms_device_await_flush (kms_device, kms_crtcs);
     }
 
   maybe_update_vrr (onscreen_native, frame);

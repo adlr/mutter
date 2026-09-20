@@ -356,24 +356,26 @@ await_flush_in_impl (MetaThreadImpl  *thread_impl,
                      gpointer         user_data,
                      GError         **error)
 {
-  MetaKmsCrtc *crtc = META_KMS_CRTC (user_data);
+  GPtrArray *crtcs = user_data;  /* of MetaKmsCrtc * */
+  MetaKmsCrtc *crtc = g_ptr_array_index (crtcs, 0);
   MetaKmsDevice *device = meta_kms_crtc_get_device (crtc);
   MetaKmsImplDevice *impl_device = meta_kms_device_get_impl_device (device);
 
-  meta_kms_impl_device_await_flush (impl_device, crtc);
+  meta_kms_impl_device_await_flush (impl_device, crtcs);
 
   return NULL;
 }
 
 void
 meta_kms_device_await_flush (MetaKmsDevice *device,
-                             MetaKmsCrtc   *crtc)
+                             GPtrArray     *crtcs)
 {
   MetaKms *kms = meta_kms_device_get_kms (device);
 
   meta_thread_post_impl_task (META_THREAD (kms),
                               await_flush_in_impl,
-                              crtc, NULL,
+                              meta_kms_crtc_array_copy (crtcs),
+                              (GDestroyNotify) g_ptr_array_unref,
                               NULL, NULL);
 }
 
