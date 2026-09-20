@@ -44,6 +44,9 @@ typedef struct _CrtcStateImpl
   gatomicrefcount ref_count;
 
   MetaKmsCrtc *crtc;
+  /* Hold all the MetaKmsCrtc objects for the tile group, including crtc. */
+  /* If display is not tiled, it holds only crtc */
+  GPtrArray *group_crtcs;
   MetaKmsPlane *cursor_plane;
   graphene_rect_t layout;
   float scale;
@@ -96,6 +99,7 @@ find_crtc_state (MetaKmsCursorManagerImpl *cursor_manager_impl,
 static CrtcStateImpl *
 crtc_state_impl_new (MetaKmsCursorManagerImpl *cursor_manager_impl,
                      MetaKmsCrtc              *crtc,
+                     GPtrArray                *group_crtcs,
                      MetaKmsPlane             *cursor_plane,
                      graphene_rect_t           layout,
                      float                     scale,
@@ -106,6 +110,8 @@ crtc_state_impl_new (MetaKmsCursorManagerImpl *cursor_manager_impl,
   crtc_state_impl = g_new0 (CrtcStateImpl, 1);
   g_atomic_ref_count_init (&crtc_state_impl->ref_count);
   crtc_state_impl->crtc = crtc;
+  crtc_state_impl->group_crtcs =
+    group_crtcs ? g_ptr_array_ref (group_crtcs) : NULL;
   crtc_state_impl->cursor_plane = cursor_plane;
   crtc_state_impl->layout = layout;
   crtc_state_impl->scale = scale;
@@ -130,6 +136,7 @@ crtc_state_impl_unref (CrtcStateImpl *crtc_state_impl)
       g_warn_if_fail (!crtc_state_impl->pending_buffer);
       g_warn_if_fail (!crtc_state_impl->active_buffer);
       g_warn_if_fail (!crtc_state_impl->presenting_buffer);
+      g_clear_pointer (&crtc_state_impl->group_crtcs, g_ptr_array_unref);
       g_free (crtc_state_impl);
     }
 }
@@ -745,12 +752,11 @@ position_changed_in_impl (MetaThreadImpl  *thread_impl,
           MetaKmsDevice *device = meta_kms_crtc_get_device (crtc);
           MetaKmsImplDevice *impl_device =
             meta_kms_device_get_impl_device (device);
-          g_autoptr (GPtrArray) crtcs = g_ptr_array_new_from_array ((void**) &crtc_state_impl->crtc, 1, NULL, NULL, NULL);
 
           crtc_state_impl->cursor_invalidated = TRUE;
 
           meta_kms_impl_device_schedule_process (impl_device,
-                                                 crtcs);
+                                                 crtc_state_impl->group_crtcs);
         }
     }
 
@@ -797,7 +803,6 @@ update_sprite_in_impl (MetaThreadImpl  *thread_impl,
     meta_kms_device_get_impl_device (device);
   CrtcStateImpl *crtc_state_impl;
   MetaDrmBuffer *old_buffer;
-  g_autoptr (GPtrArray) crtcs = NULL;
 
   crtc_state_impl = find_crtc_state (cursor_manager_impl, crtc);
   g_return_val_if_fail (crtc_state_impl, NULL);
@@ -809,10 +814,9 @@ update_sprite_in_impl (MetaThreadImpl  *thread_impl,
   crtc_state_impl->sprite_height = data->sprite_height;
   crtc_state_impl->hotspot = data->hotspot;
   crtc_state_impl->cursor_invalidated = TRUE;
-  crtcs = g_ptr_array_new_from_array ((void**) &crtc_state_impl->crtc, 1, NULL, NULL, NULL);
 
   meta_kms_impl_device_schedule_process (impl_device,
-                                         crtcs);
+                                         crtc_state_impl->group_crtcs);
 
   if (old_buffer)
     {
@@ -902,6 +906,7 @@ update_viewports_in_impl (MetaThreadImpl  *thread_impl,
           crtc_state_impl =
             crtc_state_impl_new (cursor_manager_impl,
                                  crtc_layout->crtc,
+                                 crtc_layout->group_crtcs,
                                  crtc_layout->cursor_plane,
                                  crtc_layout->layout,
                                  crtc_layout->scale,
@@ -912,6 +917,7 @@ update_viewports_in_impl (MetaThreadImpl  *thread_impl,
           crtc_state_impl =
             crtc_state_impl_new (cursor_manager_impl,
                                  crtc_layout->crtc,
+                                 crtc_layout->group_crtcs,
                                  crtc_layout->cursor_plane,
                                  crtc_layout->layout,
                                  crtc_layout->scale,

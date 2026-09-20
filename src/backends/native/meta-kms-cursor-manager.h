@@ -29,9 +29,10 @@
 typedef struct _MetaKmsCrtcLayout
 {
   MetaKmsCrtc *crtc;
-  /* All KmsCrtcs for the tile group in case of tiled display, including crtc. */
-  /* In a non-tiled dispaly, group_crtcs would have just one element (crtc). */
-  MetaKmsCrtcPtrArray *group_crtcs;
+  /* A GPtrArray of MetaKmsCrtc *, holding every CRTC of the tile group
+   * @crtc belongs to, @crtc included. For a non-tiled display it holds
+   * @crtc alone. */
+  GPtrArray *group_crtcs;
   MetaKmsPlane *cursor_plane;
   graphene_rect_t layout;
   float scale;

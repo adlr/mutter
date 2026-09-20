@@ -31,8 +31,6 @@
 
 MetaKmsDevice * meta_render_target_native_get_kms_device (MetaRenderTarget *render_target);
 
-typedef GPtrArray MetaKmsCrtcPtrArray;  /* GPtrArray of MetaKmsCrtc *, must have at least 1 element */
-
 /* Returns a GPtrArray of MetaKmsCrtc *. Caller takes ownership of the
  * returned array, and the array has a ref on each element.
  */
