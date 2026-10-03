@@ -46,9 +46,18 @@ struct _MetaRenderTarget
 G_DEFINE_TYPE (MetaRenderTarget, meta_render_target, G_TYPE_OBJECT)
 
 MetaRenderTarget *
-meta_render_target_new (void)
+meta_render_target_new (MetaCrtc   *primary_crtc,
+                        MetaOutput *primary_output)
 {
-  return g_object_new (META_TYPE_RENDER_TARGET, NULL);
+  MetaRenderTarget *render_target;
+
+  g_return_val_if_fail (META_IS_CRTC (primary_crtc), NULL);
+  g_return_val_if_fail (META_IS_OUTPUT (primary_output), NULL);
+
+  render_target = g_object_new (META_TYPE_RENDER_TARGET, NULL);
+  meta_render_target_add (render_target, primary_crtc, primary_output);
+
+  return render_target;
 }
 
 void

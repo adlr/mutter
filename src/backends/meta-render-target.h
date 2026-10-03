@@ -27,7 +27,8 @@
 #define META_TYPE_RENDER_TARGET (meta_render_target_get_type ())
 G_DECLARE_FINAL_TYPE (MetaRenderTarget, meta_render_target, META, RENDER_TARGET, GObject)
 
-MetaRenderTarget *meta_render_target_new (void);
+MetaRenderTarget *meta_render_target_new (MetaCrtc   *primary_crtc,
+                                          MetaOutput *primary_output);
 
 void meta_render_target_set_transform (MetaRenderTarget   *render_target,
                                        MtkMonitorTransform transform);

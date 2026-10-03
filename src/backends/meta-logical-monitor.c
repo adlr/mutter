@@ -240,21 +240,53 @@ typedef struct _ForeachCrtcData
 } ForeachCrtcData;
 
 static gboolean
+foreach_crtc_group (MetaMonitor      *monitor,
+                    MetaMonitorMode  *mode,
+                    GPtrArray        *monitor_crtc_modes,  /* of type MetaMonitorCrtcMode * */
+                    gpointer          user_data,
+                    GError          **error)
+{
+  ForeachCrtcData *data = user_data;
+  g_autoptr (MetaRenderTarget) render_target = NULL;
+  MetaMonitorCrtcMode *primary_crtc_mode;
+  MetaOutput *primary_output;
+
+  g_return_val_if_fail (monitor_crtc_modes->len > 0, FALSE);
+
+  primary_crtc_mode = g_ptr_array_index (monitor_crtc_modes, 0);
+  primary_output = primary_crtc_mode->output;
+  render_target =
+    meta_render_target_new (meta_output_get_assigned_crtc (primary_output),
+                            primary_output);
+
+  for (unsigned int i = 1; i < monitor_crtc_modes->len; i++)
+    {
+      MetaMonitorCrtcMode *monitor_crtc_mode =
+        g_ptr_array_index (monitor_crtc_modes, i);
+      MetaOutput *output = monitor_crtc_mode->output;
+      MetaCrtc *crtc = meta_output_get_assigned_crtc (output);
+
+      meta_render_target_add (render_target, crtc, output);
+    }
+
+  data->func (data->logical_monitor,
+              monitor,
+              render_target,
+              data->user_data);
+
+  return TRUE;
+}
+
+static gboolean
 foreach_crtc (MetaMonitor         *monitor,
               MetaMonitorMode     *mode,
               MetaMonitorCrtcMode *monitor_crtc_mode,
               gpointer             user_data,
               GError             **error)
 {
-  ForeachCrtcData *data = user_data;
-
-  data->func (data->logical_monitor,
-              monitor,
-              monitor_crtc_mode->output,
-              meta_output_get_assigned_crtc (monitor_crtc_mode->output),
-              data->user_data);
-
-  return TRUE;
+  g_autoptr (GPtrArray) monitor_crtc_modes = g_ptr_array_new_full (1, NULL);
+  g_ptr_array_add (monitor_crtc_modes, monitor_crtc_mode);
+  return foreach_crtc_group (monitor, mode, monitor_crtc_modes, user_data, error);
 }
 
 void
