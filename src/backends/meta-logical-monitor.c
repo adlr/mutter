@@ -285,8 +285,11 @@ foreach_crtc (MetaMonitor         *monitor,
               GError             **error)
 {
   g_autoptr (GPtrArray) monitor_crtc_modes = g_ptr_array_new_full (1, NULL);
+
   g_ptr_array_add (monitor_crtc_modes, monitor_crtc_mode);
-  return foreach_crtc_group (monitor, mode, monitor_crtc_modes, user_data, error);
+
+  return foreach_crtc_group (monitor, mode, monitor_crtc_modes, user_data,
+                             error);
 }
 
 void
@@ -294,6 +297,7 @@ meta_logical_monitor_foreach_crtc (MetaLogicalMonitor        *logical_monitor,
                                    MetaLogicalMonitorCrtcFunc func,
                                    gpointer                   user_data)
 {
+  const char *tile_en = g_getenv ("TILE_EN");
   GList *l;
 
   for (l = logical_monitor->monitors; l; l = l->next)
@@ -307,7 +311,18 @@ meta_logical_monitor_foreach_crtc (MetaLogicalMonitor        *logical_monitor,
       };
 
       mode = meta_monitor_get_current_mode (monitor);
-      meta_monitor_mode_foreach_crtc (monitor, mode, foreach_crtc, &data, NULL);
+
+      if (g_strcmp0 (tile_en, "1") == 0)
+        {
+          meta_monitor_mode_foreach_crtc_group (monitor, mode,
+                                                foreach_crtc_group,
+                                                &data, NULL);
+        }
+      else
+        {
+          meta_monitor_mode_foreach_crtc (monitor, mode, foreach_crtc,
+                                          &data, NULL);
+        }
     }
 }
 
