@@ -109,6 +109,41 @@ meta_render_target_get_outputs (MetaRenderTarget *render_target)
 }
 
 MtkRectangle
+meta_render_target_get_output_extents (MetaRenderTarget *render_target)
+{
+  const MetaCrtcConfig *crtc_config;
+  const MetaCrtcModeInfo *crtc_mode_info;
+  int width = 0;
+  int height = 0;
+
+  /* If only one, just use that size */
+  if (render_target->crtcs->len == 1)
+    {
+      crtc_config =
+        meta_crtc_get_config (meta_render_target_get_primary_crtc (render_target));
+      crtc_mode_info = meta_crtc_mode_get_info (crtc_config->mode);
+
+      return MTK_RECTANGLE_INIT (0, 0,
+                                 crtc_mode_info->width,
+                                 crtc_mode_info->height);
+    }
+
+  /* Else get full size from tile info */
+  for (unsigned int i = 0; i < render_target->outputs->len; i++)
+    {
+      MetaOutput *output = g_ptr_array_index (render_target->outputs, i);
+      const MetaOutputInfo *output_info = meta_output_get_info (output);
+
+      if (output_info->tile_info.loc_h_tile == 0)
+        height += output_info->tile_info.tile_h;
+      if (output_info->tile_info.loc_v_tile == 0)
+        width += output_info->tile_info.tile_w;
+    }
+
+  return MTK_RECTANGLE_INIT (0, 0, width, height);
+}
+
+MtkRectangle
 meta_render_target_get_view_layout (MetaRenderTarget *render_target)
 {
   MtkRectangle view_layout;

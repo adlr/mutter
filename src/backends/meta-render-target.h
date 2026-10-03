@@ -50,9 +50,14 @@ GPtrArray * meta_render_target_get_crtcs (MetaRenderTarget *render_target);
 
 GPtrArray * meta_render_target_get_outputs (MetaRenderTarget *render_target);
 
-MtkRectangle meta_render_target_get_view_layout (MetaRenderTarget *render_target);
-
 MetaGpu * meta_render_target_get_gpu (MetaRenderTarget *render_target);
+
+/* Returns the extents, in physical pixels, covered by every output of
+ * `render_target` together, with the upper left tile at 0, 0.
+ */
+MtkRectangle meta_render_target_get_output_extents (MetaRenderTarget *render_target);
+
+MtkRectangle meta_render_target_get_view_layout (MetaRenderTarget *render_target);
 
 /* Returns the rectangle in physical pixels covered by this particular
  * `output` within `render_target`. This function does not look at the
