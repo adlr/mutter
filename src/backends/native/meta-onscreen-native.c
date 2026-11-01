@@ -445,6 +445,16 @@ notify_frame_info_complete (CoglFrameInfo *info)
   _cogl_onscreen_notify_complete (onscreen, info);
 }
 
+/* Tiled monitors send a flip event per CRTC; only one may complete */
+static gboolean
+is_posted_frame (ClutterFrame *frame)
+{
+  CoglFrameInfo *frame_info = clutter_frame_get_cogl_frame_info (frame);
+  CoglOnscreen *onscreen = cogl_frame_info_get_onscreen (frame_info);
+
+  return META_ONSCREEN_NATIVE (onscreen)->posted_frame == frame;
+}
+
 static void
 notify_crtc_presented (MetaKmsCrtc      *kms_crtc,
                        ClutterFrame     *frame,
@@ -509,6 +519,9 @@ page_flip_feedback_flipped (MetaKmsCrtc  *kms_crtc,
   int64_t presentation_time_us;
   CoglFrameInfoFlag flags = COGL_FRAME_INFO_FLAG_VSYNC;
 
+  if (!is_posted_frame (frame))
+    return;
+
   page_flip_time = (struct timeval) {
     .tv_sec = tv_sec,
     .tv_usec = tv_usec,
@@ -544,6 +557,9 @@ page_flip_feedback_ready (MetaKmsCrtc *kms_crtc,
   CoglFrameInfo *frame_info = clutter_frame_get_cogl_frame_info (frame);
   CoglOnscreen *onscreen = cogl_frame_info_get_onscreen (frame_info);
 
+  if (!is_posted_frame (frame))
+    return;
+
   frame_info->flags |= COGL_FRAME_INFO_FLAG_SYMBOLIC;
 
   notify_frame_info_complete (frame_info);
@@ -557,6 +573,9 @@ page_flip_feedback_mode_set_fallback (MetaKmsCrtc *kms_crtc,
 {
   ClutterFrame *frame = user_data;
   int64_t now_us;
+
+  if (!is_posted_frame (frame))
+    return;
 
   /*
    * We ended up not page flipping, thus we don't have a presentation time to
@@ -582,6 +601,9 @@ page_flip_feedback_discarded (MetaKmsCrtc  *kms_crtc,
   CoglOnscreen *onscreen = cogl_frame_info_get_onscreen (frame_info);
   MetaOnscreenNative *onscreen_native = META_ONSCREEN_NATIVE (onscreen);
   int64_t frame_counter;
+
+  if (!is_posted_frame (frame))
+    return;
 
   /*
    * Page flipping failed, but we want to fail gracefully, so to avoid freezing
