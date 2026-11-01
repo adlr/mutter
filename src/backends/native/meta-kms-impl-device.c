@@ -71,6 +71,7 @@ typedef struct _CrtcDeadline
   gboolean cursor_enabled;
   gboolean cursor_moved_last_frame;
   gboolean pending_page_flip;
+  int n_pending_page_flips;
   int64_t kms_ready_time_us;
   int refcnt;
 
@@ -1470,6 +1471,16 @@ rearm_deadline_timer (MetaKmsImplDevice *impl_device,
   return ensure_deadline_timer_armed (impl_device, crtc_frame);
 }
 
+/* A commit on a tile group flips each CRTC; wait for the last one */
+static gboolean
+crtc_frame_page_flip_done (CrtcFrame *crtc_frame)
+{
+  if (crtc_frame->n_pending_page_flips > 0)
+    crtc_frame->n_pending_page_flips--;
+
+  return crtc_frame->n_pending_page_flips == 0;
+}
+
 static void
 notify_crtc_frame_ready (CrtcFrame *crtc_frame)
 {
@@ -1543,7 +1554,8 @@ crtc_page_flip_feedback_flipped (MetaKmsCrtc  *crtc,
         }
     }
 
-  notify_crtc_frame_ready (crtc_frame);
+  if (crtc_frame_page_flip_done (crtc_frame))
+    notify_crtc_frame_ready (crtc_frame);
 }
 
 static void
@@ -1552,7 +1564,8 @@ crtc_page_flip_feedback_ready (MetaKmsCrtc *crtc,
 {
   CrtcFrame *crtc_frame = user_data;
 
-  notify_crtc_frame_ready (crtc_frame);
+  if (crtc_frame_page_flip_done (crtc_frame))
+    notify_crtc_frame_ready (crtc_frame);
 }
 
 static void
@@ -1561,7 +1574,8 @@ crtc_page_flip_feedback_mode_set_fallback (MetaKmsCrtc *crtc,
 {
   CrtcFrame *crtc_frame = user_data;
 
-  crtc_frame->pending_page_flip = FALSE;
+  if (crtc_frame_page_flip_done (crtc_frame))
+    crtc_frame->pending_page_flip = FALSE;
 }
 
 static void
@@ -1571,7 +1585,8 @@ crtc_page_flip_feedback_discarded (MetaKmsCrtc  *crtc,
 {
   CrtcFrame *crtc_frame = user_data;
 
-  crtc_frame->pending_page_flip = FALSE;
+  if (crtc_frame_page_flip_done (crtc_frame))
+    crtc_frame->pending_page_flip = FALSE;
 }
 
 static const MetaKmsPageFlipListenerVtable crtc_page_flip_listener_vtable = {
@@ -1611,6 +1626,47 @@ queue_result_feedback (MetaKmsImplDevice *impl_device,
     }
 }
 
+static gboolean
+update_touches_crtc (MetaKmsUpdate *update,
+                     MetaKmsCrtc   *crtc)
+{
+  GList *l;
+
+  for (l = meta_kms_update_get_plane_assignments (update); l; l = l->next)
+    {
+      MetaKmsPlaneAssignment *plane_assignment = l->data;
+
+      if (plane_assignment->crtc == crtc)
+        return TRUE;
+    }
+
+  for (l = meta_kms_update_get_mode_sets (update); l; l = l->next)
+    {
+      MetaKmsModeSet *mode_set = l->data;
+
+      if (mode_set->crtc == crtc)
+        return TRUE;
+    }
+
+  for (l = meta_kms_update_get_crtc_updates (update); l; l = l->next)
+    {
+      MetaKmsCrtcUpdate *crtc_update = l->data;
+
+      if (crtc_update->crtc == crtc)
+        return TRUE;
+    }
+
+  for (l = meta_kms_update_get_crtc_color_updates (update); l; l = l->next)
+    {
+      MetaKmsCrtcColorUpdate *color_update = l->data;
+
+      if (color_update->crtc == crtc)
+        return TRUE;
+    }
+
+  return FALSE;
+}
+
 static MetaKmsFeedback *
 do_process (MetaKmsImplDevice *impl_device,
             GPtrArray         *latch_crtcs,
@@ -1624,6 +1680,7 @@ do_process (MetaKmsImplDevice *impl_device,
   MetaThreadImpl *thread_impl = META_THREAD_IMPL (impl);
   MetaKmsImplDeviceClass *klass = META_KMS_IMPL_DEVICE_GET_CLASS (impl_device);
   CrtcFrame *crtc_frame = NULL;
+  g_autoptr (GPtrArray) flip_crtcs = g_ptr_array_new ();
   MetaKmsFeedback *feedback;
   MetaKmsResourceChanges changes = META_KMS_RESOURCE_CHANGE_NONE;
 
@@ -1662,6 +1719,19 @@ do_process (MetaKmsImplDevice *impl_device,
             {
               MetaKmsCrtc *crtc = g_ptr_array_index (crtc_frame->crtcs, i);
 
+              if (update_touches_crtc (update, crtc))
+                g_ptr_array_add (flip_crtcs, crtc);
+            }
+
+          /* Like a single CRTC, expect a flip on the primary CRTC */
+          if (flip_crtcs->len == 0)
+            g_ptr_array_add (flip_crtcs,
+                             g_ptr_array_index (crtc_frame->crtcs, 0));
+
+          for (unsigned int i = 0; i < flip_crtcs->len; i++)
+            {
+              MetaKmsCrtc *crtc = g_ptr_array_index (flip_crtcs, i);
+
               meta_kms_update_add_page_flip_listener (update,
                                                       crtc,
                                                       &crtc_page_flip_listener_vtable,
@@ -1679,6 +1749,7 @@ do_process (MetaKmsImplDevice *impl_device,
       MetaKmsPlaneAssignment *cursor_assignment = NULL;
 
       crtc_frame->pending_page_flip = TRUE;
+      crtc_frame->n_pending_page_flips += flip_crtcs->len;
       meta_kms_feedback_set_ready_time_us (feedback,
                                            crtc_frame->kms_ready_time_us);
 
@@ -2409,14 +2480,15 @@ meta_kms_impl_device_schedule_process (MetaKmsImplDevice *impl_device,
 
       if (ensure_deadline_timer_armed (impl_device, crtc_frame))
         return;
+    }
 
-      if (crtc_frame->pending_update)
-        {
-          meta_kms_impl_device_do_process_update (impl_device, crtc_frame,
-                                                  crtc_frame->crtcs,
-                                                  crtc_frame->pending_update,
-                                                  META_KMS_UPDATE_FLAG_NONE);
-        }
+  /* Without a deadline timer, an update can wait for a tile CRTC flip */
+  if (crtc_frame->pending_update && !crtc_frame->pending_page_flip)
+    {
+      meta_kms_impl_device_do_process_update (impl_device, crtc_frame,
+                                              crtc_frame->crtcs,
+                                              crtc_frame->pending_update,
+                                              META_KMS_UPDATE_FLAG_NONE);
     }
 
   if (crtc_frame->pending_update)
